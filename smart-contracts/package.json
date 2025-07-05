@@ -1,0 +1,16 @@
+{
+  "name": "smart-contracts",
+  "version": "1.0.0",
+  "description": "Smart contract suite for the World-Agent ecosystem providing decentralized infrastructure for AI agents.",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "devDependencies": {
+    "hardhat": "^2.25.0"
+  }
+}
