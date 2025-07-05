@@ -176,33 +176,33 @@ export default function SelfVerificationQR() {
   };
 
   return (
-    <div className="verification-container p-6">
-      <h2 className="text-2xl font-bold mb-4">Verify Your Identity</h2>
-      <p className="mb-6 text-gray-600">
-        Scan this QR code with the Self app to verify your identity
-      </p>
-      
-      <div className="flex justify-center">
-        <SelfQRcodeWrapper
-          selfApp={selfApp}
-          onSuccess={handleSuccess}
-          onError={handleError}
-          size={350}
-        />
-      </div>
-      
-      <p className="text-sm text-gray-500 mt-4 text-center">
-        User ID: {userId.substring(0, 8)}...
-      </p>
-      
-      <div className="mt-6 p-4 bg-gray-100 rounded-lg">
-        <h3 className="font-semibold mb-2">Configuration:</h3>
-        <ul className="text-sm text-gray-600">
-          <li>• Scope: my-application-scope</li>
-          <li>• Minimum Age: 18</li>
-          <li>• Excluded Countries: Iran, North Korea</li>
-          <li>• OFAC Check: Enabled</li>
-        </ul>
+    <div className="verification-container p-6 qr-section">
+      <div className="qr-card">
+        <h2 className="qr-title">Verify Your Identity</h2>
+        <p className="qr-subtitle">
+          Scan this QR code with the <strong>Self</strong> app
+        </p>
+
+        <div className="qr-wrapper">
+          <SelfQRcodeWrapper
+            selfApp={selfApp}
+            onSuccess={handleSuccess}
+            onError={handleError}
+            size={350}
+          />
+        </div>
+
+        <p className="qr-user-id">Session ID: {userId.substring(0, 8)}…</p>
+
+        <div className="config-card">
+          <h3>Configuration</h3>
+          <ul className="config-list">
+            <li><span>Scope:</span> my-application-scope</li>
+            <li><span>Minimum Age:</span> 18</li>
+            <li><span>Excluded Countries:</span> Iran, North Korea</li>
+            <li><span>OFAC Check:</span> Enabled</li>
+          </ul>
+        </div>
       </div>
     </div>
   );
