@@ -1,6 +1,13 @@
 import { AcademicField } from '@/schema';
-import { HypergraphSpaceProvider, useQuery, useSpace } from '@graphprotocol/hypergraph-react';
+import {
+  HypergraphSpaceProvider,
+  useQuery,
+  useSpace,
+  useHypergraphApp,
+  publishOps,
+} from '@graphprotocol/hypergraph-react';
 import { createFileRoute, Link } from '@tanstack/react-router';
+import { mapping } from '@/mapping';
 
 export const Route = createFileRoute('/public-space/$space-id')({
   component: RouteComponent,
@@ -11,14 +18,102 @@ function RouteComponent() {
 
   return (
     <HypergraphSpaceProvider space={spaceId}>
-      <PublicSpace />
+      <PublicSpace spaceId={spaceId} />
     </HypergraphSpaceProvider>
   );
 }
 
-function PublicSpace() {
+function PublicSpace({ spaceId }: { spaceId: string }) {
   const { ready, name } = useSpace({ mode: 'public' });
-  const { data: academicFields } = useQuery(AcademicField, { mode: 'public' });
+  const { data: academicFields, refetch: refetchAcademicFields } = useQuery(AcademicField, { mode: 'public' });
+  const { getSmartSessionClient } = useHypergraphApp();
+
+  // Debug space state
+  console.log('=== PUBLIC SPACE STATE DEBUG ===');
+  console.log('Space ID:', spaceId);
+  console.log('Space ready:', ready);
+  console.log('Space name:', name);
+  console.log('Academic fields:', academicFields);
+
+  const handleUnsetEntity = async (academicField: AcademicField) => {
+    console.log('=== PUBLIC SPACE UNSET DEBUG ===');
+    console.log('Attempting to unset public entity:', academicField);
+    console.log('Entity ID:', (academicField as any).id);
+    console.log('Space ID:', spaceId);
+    console.log('Space ready:', ready);
+    console.log('Full entity object:', JSON.stringify(academicField, null, 2));
+
+    if (
+      confirm(
+        `Are you sure you want to unset "${academicField.name}"? This will remove the entity from the public space but preserve it in the blockchain.`,
+      )
+    ) {
+      try {
+        console.log('User confirmed unset, preparing operations...');
+
+        // Get all property IDs for the AcademicField entity
+        const academicFieldMapping = mapping.AcademicField;
+        if (!academicFieldMapping?.properties) {
+          throw new Error('AcademicField mapping properties not found');
+        }
+
+        const propertyIds = Object.values(academicFieldMapping.properties);
+        console.log('Property IDs to unset:', propertyIds);
+
+        // Create unset operations manually since unsetEntityValues is not available
+        const ops = [
+          {
+            type: 'UNSET_ENTITY_VALUES' as const,
+            unsetEntityValues: {
+              id: (academicField as any).id,
+              properties: propertyIds,
+            },
+          },
+        ];
+
+        console.log('Unset operations:', ops);
+
+        // Get smart session client
+        const smartSessionClient = await getSmartSessionClient();
+        if (!smartSessionClient) {
+          throw new Error('Missing smartSessionClient');
+        }
+
+        console.log('Publishing unset operations...');
+
+        // Publish the unset operations
+        const result = await publishOps({
+          ops,
+          space: spaceId,
+          name: 'Unset AcademicField',
+          walletClient: smartSessionClient,
+        });
+
+        console.log('Unset operations published successfully:', result);
+
+        // Refresh the data after unset
+        setTimeout(() => {
+          console.log('Refreshing academic fields after unset...');
+          refetchAcademicFields();
+        }, 1000);
+      } catch (error) {
+        console.error('Error unsetting entity:', error);
+        console.error('Error details:', {
+          message: (error as any)?.message,
+          stack: (error as any)?.stack,
+          name: (error as any)?.name,
+        });
+        alert(`Error unsetting entity: ${(error as any)?.message || 'Unknown error'}`);
+      }
+    } else {
+      console.log('User cancelled unset');
+    }
+  };
+
+  const handleRefreshData = () => {
+    console.log('Manually refreshing academic fields...');
+    refetchAcademicFields();
+  };
 
   if (!ready) {
     return (
@@ -58,6 +153,13 @@ function PublicSpace() {
                 <span className="text-green-400 font-semibold">●</span>
                 <span className="text-gray-400 ml-2">Live</span>
               </div>
+              <button
+                onClick={handleRefreshData}
+                className="bg-yellow-600 hover:bg-yellow-700 text-white px-4 py-2 rounded-lg font-semibold transition-colors flex items-center space-x-2"
+              >
+                <span>🔄</span>
+                <span>Refresh</span>
+              </button>
             </div>
           </div>
         </div>
@@ -143,9 +245,18 @@ function PublicSpace() {
                   {/* Actions */}
                   <div className="flex justify-between items-center pt-4 border-t border-white/10">
                     <div className="text-gray-500 text-sm">Entity #{index + 1}</div>
-                    <button className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm font-semibold transition-colors">
-                      Explore
-                    </button>
+                    <div className="flex space-x-2">
+                      <button className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm font-semibold transition-colors">
+                        Explore
+                      </button>
+                      <button
+                        onClick={() => handleUnsetEntity(academicField)}
+                        className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg text-sm font-semibold transition-colors flex items-center space-x-1"
+                      >
+                        <span>🗑️</span>
+                        <span>Unset</span>
+                      </button>
+                    </div>
                   </div>
                 </div>
               ))}
