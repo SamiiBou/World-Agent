@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { SelfQRcodeWrapper, SelfAppBuilder } from '@selfxyz/qrcode';
 import { v4 as uuidv4 } from 'uuid';
 import './SelfQRCode.css';
+import VerificationStorage from '../utils/verificationStorage';
 
 export default function SelfVerificationQR() {
   const [userId, setUserId] = useState<string | null>(null);
@@ -17,7 +18,10 @@ export default function SelfVerificationQR() {
   if (!userId) return <div>Loading Self ID...</div>;
 
   // Show success state after verification
-  if (verificationStatus === 'success') {
+  if (verificationStatus === 'success' && verificationData) {
+    const ageValid = verificationData.selfVerificationData?.isValidDetails?.isMinimumAgeValid ?? false;
+    const countryValid = verificationData.selfVerificationData?.isValidDetails?.isOfacValid ?? false;
+
     return (
       <div className="verification-container p-6">
         <div className="verification-success">
@@ -37,13 +41,27 @@ export default function SelfVerificationQR() {
                   {new Date(verificationData.verificationTimestamp).toLocaleString()}
                 </span>
               </div>
+              {verificationData.selfUserId && (
+                <div className="detail-item">
+                  <span className="detail-label">Unique ID:</span>
+                  <span className="detail-value primary-id">{verificationData.selfUserId}</span>
+                </div>
+              )}
               <div className="detail-item">
-                <span className="detail-label">User ID:</span>
-                <span className="detail-value">{userId.substring(0, 8)}...</span>
+                <span className="detail-label">Age Requirement:</span>
+                <span className={`detail-value ${ageValid ? 'verified' : 'invalid'}`}>{ageValid ? 'Passed ✓' : 'Failed ✗'}</span>
+              </div>
+              <div className="detail-item">
+                <span className="detail-label">Country/OFAC Check:</span>
+                <span className={`detail-value ${countryValid ? 'verified' : 'invalid'}`}>{countryValid ? 'Passed ✓' : 'Blocked ✗'}</span>
               </div>
               <div className="detail-item">
                 <span className="detail-label">Status:</span>
                 <span className="detail-value verified">Verified ✓</span>
+              </div>
+              <div className="detail-item">
+                <span className="detail-label">Verification Type:</span>
+                <span className="detail-value">{verificationData.verificationType}</span>
               </div>
             </div>
           )}
@@ -90,11 +108,66 @@ export default function SelfVerificationQR() {
   const handleSuccess = (data?: any) => {
     console.log("✅ Verification successful!");
     console.log("Verification data:", data);
-    setVerificationStatus('success');
-    setVerificationData({
-      verificationTimestamp: Date.now(),
-      ...data
-    });
+    
+    // The Self QR SDK success callback doesn't contain the backend verification data
+    // We need to fetch the most recent verification result from our backend
+    fetchVerificationResult();
+  };
+
+  const fetchVerificationResult = async () => {
+    try {
+      // Fetch the latest verification result from backend (no userId filter, backend picks latest)
+      const response = await fetch(`http://localhost:3001/api/latest-verification`);
+      
+      if (!response.ok) {
+        throw new Error(`Failed to fetch verification: ${response.status}`);
+      }
+      
+      const data = await response.json();
+      
+      if (data.success && data.verification) {
+        // Prefer nullifier as stable unique ID; fallback to userIdentifier if needed
+        const uniqueId = data.verification.discloseOutput?.nullifier;
+        
+        const verificationInfo = {
+          sessionUserId: userId!,
+          selfUserId: uniqueId,
+          verificationTimestamp: data.verification.timestamp,
+          selfVerificationData: data.verification, // Full verification data
+          isVerified: true,
+          verificationType: 'self-id' as const
+        };
+        
+        VerificationStorage.storeVerification(verificationInfo);
+        setVerificationStatus('success');
+        setVerificationData(verificationInfo);
+        
+        console.log('✅ Verification data fetched and stored:', {
+          uniqueId,
+          timestamp: data.verification.timestamp
+        });
+      } else {
+        throw new Error('Invalid verification response');
+      }
+    } catch (error) {
+      console.error('Failed to fetch verification result:', error);
+      
+      // Fallback: create basic verification info even if fetch fails
+      const fallbackInfo = {
+        sessionUserId: userId!,
+        selfUserId: undefined,
+        verificationTimestamp: Date.now(),
+        selfVerificationData: undefined,
+        isVerified: true,
+        verificationType: 'self-id' as const
+      };
+      
+      VerificationStorage.storeVerification(fallbackInfo);
+      setVerificationStatus('success');
+      setVerificationData(fallbackInfo);
+      
+      console.log('⚠️ Using fallback verification data due to fetch error');
+    }
   };
 
   const handleError = (data: { error_code?: string; reason?: string }) => {

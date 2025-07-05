@@ -8,6 +8,10 @@
    } = require('@selfxyz/core');
    const { generateUserContextData } = require('../utils/generateUserContextData');
 
+   // Simple in-memory store for recent verifications (in production, use Redis or database)
+   const recentVerifications = new Map();
+   const VERIFICATION_EXPIRY = 5 * 60 * 1000; // 5 minutes
+
    // Configure storage with verification requirements
    const configStorage = new InMemoryConfigStore(
      async () => {
@@ -130,6 +134,28 @@
        
        console.log('✅ Verification successful!', result);
        
+       // Store verification result for frontend retrieval
+       const verificationId = `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+       const verificationRecord = {
+         id: verificationId,
+         result,
+         timestamp: Date.now(),
+         userId: userId,
+         userIdentifier: result.userData?.userIdentifier,
+         userData: result.userData,
+         discloseOutput: result.discloseOutput
+       };
+       
+       recentVerifications.set(verificationId, verificationRecord);
+       
+       // Clean up old verifications
+       const now = Date.now();
+       for (const [id, record] of recentVerifications.entries()) {
+         if (now - record.timestamp > VERIFICATION_EXPIRY) {
+           recentVerifications.delete(id);
+         }
+       }
+       
        // Return a success response that Self app expects
        return res.status(200).json({
          status: 'success',
@@ -137,7 +163,9 @@
          verified: true,
          message: 'Identity verification successful',
          verificationResult: result,
-         verificationTimestamp: Date.now()
+         verificationTimestamp: Date.now(),
+         verificationId: verificationId, // Include ID for frontend retrieval
+         userIdentifier: result.userData?.userIdentifier // Include userIdentifier directly
        });
        
      } catch (error) {
@@ -149,6 +177,108 @@
          status: 'error',
          result: false,
          message: errorMessage
+       });
+     }
+   });
+
+   // Endpoint to fetch verification result by ID
+   router.get('/verification/:id', (req, res) => {
+     try {
+       const { id } = req.params;
+       const verification = recentVerifications.get(id);
+       
+       if (!verification) {
+         return res.status(404).json({
+           success: false,
+           message: 'Verification not found or expired'
+         });
+       }
+       
+       // Check if verification is still valid (not expired)
+       const now = Date.now();
+       if (now - verification.timestamp > VERIFICATION_EXPIRY) {
+         recentVerifications.delete(id);
+         return res.status(404).json({
+           success: false,
+           message: 'Verification has expired'
+         });
+       }
+       
+       return res.status(200).json({
+         success: true,
+         verification: {
+           id: verification.id,
+           timestamp: verification.timestamp,
+           userIdentifier: verification.userIdentifier,
+           userData: verification.userData,
+           discloseOutput: verification.discloseOutput,
+           isValidDetails: verification.result?.isValidDetails,
+           forbiddenCountriesList: verification.result?.forbiddenCountriesList,
+           isVerified: true
+         }
+       });
+       
+     } catch (error) {
+       console.error('Error fetching verification:', error);
+       return res.status(500).json({
+         success: false,
+         message: 'Internal server error'
+       });
+     }
+   });
+   
+   // Endpoint to get the latest verification for a user
+   router.get('/latest-verification', (req, res) => {
+     try {
+       const { userId } = req.query;
+       
+       // Find the most recent verification for this user
+       let latestVerification = null;
+       let latestTimestamp = 0;
+       
+       for (const [id, record] of recentVerifications.entries()) {
+         if (record.userId === userId && record.timestamp > latestTimestamp) {
+           latestVerification = record;
+           latestTimestamp = record.timestamp;
+         }
+       }
+       
+       if (!latestVerification) {
+         return res.status(404).json({
+           success: false,
+           message: 'No recent verification found for this user'
+         });
+       }
+       
+       // Check if verification is still valid (not expired)
+       const now = Date.now();
+       if (now - latestVerification.timestamp > VERIFICATION_EXPIRY) {
+         recentVerifications.delete(latestVerification.id);
+         return res.status(404).json({
+           success: false,
+           message: 'Verification has expired'
+         });
+       }
+       
+       return res.status(200).json({
+         success: true,
+         verification: {
+           id: latestVerification.id,
+           timestamp: latestVerification.timestamp,
+           userIdentifier: latestVerification.userIdentifier,
+           userData: latestVerification.userData,
+           discloseOutput: latestVerification.discloseOutput,
+           isValidDetails: latestVerification.result?.isValidDetails,
+           forbiddenCountriesList: latestVerification.result?.forbiddenCountriesList,
+           isVerified: true
+         }
+       });
+       
+     } catch (error) {
+       console.error('Error fetching latest verification:', error);
+       return res.status(500).json({
+         success: false,
+         message: 'Internal server error'
        });
      }
    });
