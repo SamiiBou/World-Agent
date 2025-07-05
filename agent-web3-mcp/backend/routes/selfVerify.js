@@ -37,13 +37,13 @@
    allowedIds.set(2, true); // EU ID cards
 
    const verifier = new SelfBackendVerifier(
-     'my-application-scope',
-     'https://5c65-83-144-23-154.ngrok-free.app/api/verify',
-     false,
-     allowedIds,
-     configStorage,
-     'uuid'  // User identifier type
-   );
+  'my-application-scope',
+  'https://7048b6546b0f.ngrok.app/api/verify',
+  false,
+  allowedIds,
+  configStorage,
+  'uuid'  // User identifier type
+);
 
    router.post('/verify', async (req, res) => {
      try {
@@ -101,7 +101,7 @@
          userContextData = generateUserContextData({
            userId: userId || 'default-user',
            scope: 'my-application-scope',
-           endpoint: 'https://5c65-83-144-23-154.ngrok-free.app/',
+           endpoint: 'https://7048b6546b0f.ngrok.app/',
            customData: {
              action: 'verification',
              userDefinedData: userDefinedData || 'test'
@@ -116,7 +116,7 @@
          userContextData = generateUserContextData({
            userId: userId || 'default-user',
            scope: 'my-application-scope',
-           endpoint: 'https://5c65-83-144-23-154.ngrok-free.app/api/verify',
+           endpoint: 'https://7048b6546b0f.ngrok.app/api/verify',
            customData: {
              action: 'verification',
              userDefinedData: userDefinedData || 'test'
