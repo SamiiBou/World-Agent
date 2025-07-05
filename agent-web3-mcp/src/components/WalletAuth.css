@@ -1,0 +1,235 @@
+.wallet-auth-container {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 400px;
+  padding: 20px;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  border-radius: 12px;
+  margin: 20px auto;
+  max-width: 600px;
+}
+
+.wallet-auth-card {
+  background: white;
+  border-radius: 16px;
+  padding: 40px;
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+  text-align: center;
+  width: 100%;
+  max-width: 400px;
+  transition: transform 0.3s ease;
+}
+
+.wallet-auth-card:hover {
+  transform: translateY(-5px);
+}
+
+.wallet-auth-icon {
+  font-size: 48px;
+  margin-bottom: 20px;
+  display: block;
+}
+
+.wallet-auth-card h3 {
+  color: #333;
+  margin-bottom: 16px;
+  font-size: 24px;
+  font-weight: 600;
+}
+
+.wallet-auth-card p {
+  color: #666;
+  margin-bottom: 24px;
+  line-height: 1.6;
+}
+
+/* Authenticated State */
+.wallet-auth-authenticated {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.wallet-auth-info {
+  background: #f8f9fa;
+  border-radius: 12px;
+  padding: 20px;
+  margin-bottom: 24px;
+  width: 100%;
+  text-align: left;
+}
+
+.wallet-auth-info > div {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+}
+
+.wallet-auth-info > div:last-child {
+  margin-bottom: 0;
+}
+
+.wallet-auth-info .label {
+  color: #666;
+  font-weight: 500;
+  font-size: 14px;
+}
+
+.wallet-auth-info .value {
+  color: #333;
+  font-weight: 600;
+  font-size: 14px;
+  font-family: 'Monaco', 'Menlo', monospace;
+}
+
+.wallet-auth-username .value {
+  color: #6366f1;
+}
+
+.wallet-auth-address .value {
+  color: #10b981;
+}
+
+.wallet-auth-timestamp .value {
+  color: #8b5cf6;
+  font-family: inherit;
+}
+
+/* Unauthenticated State */
+.wallet-auth-unauthenticated {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.wallet-auth-error {
+  background: #fee2e2;
+  border: 1px solid #fecaca;
+  border-radius: 8px;
+  padding: 12px 16px;
+  margin-bottom: 20px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.wallet-auth-error .error-icon {
+  font-size: 16px;
+}
+
+.wallet-auth-error .error-text {
+  color: #dc2626;
+  font-size: 14px;
+  font-weight: 500;
+}
+
+/* Buttons */
+.wallet-auth-button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 16px 32px;
+  border: none;
+  border-radius: 12px;
+  font-size: 16px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  min-width: 200px;
+  box-sizing: border-box;
+  /* Mobile touch improvements */
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
+  min-height: 48px;
+}
+
+.wallet-auth-button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.wallet-auth-button-primary {
+  background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
+  color: white;
+  box-shadow: 0 4px 15px rgba(99, 102, 241, 0.4);
+}
+
+.wallet-auth-button-primary:hover:not(:disabled) {
+  background: linear-gradient(135deg, #5856eb 0%, #7c3aed 100%);
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(99, 102, 241, 0.6);
+}
+
+.wallet-auth-button-secondary {
+  background: #f3f4f6;
+  color: #374151;
+  border: 1px solid #d1d5db;
+}
+
+.wallet-auth-button-secondary:hover:not(:disabled) {
+  background: #e5e7eb;
+  transform: translateY(-2px);
+}
+
+.wallet-icon {
+  font-size: 20px;
+}
+
+.loading-spinner {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 16px;
+}
+
+/* Description */
+.wallet-auth-description {
+  margin-top: 24px;
+  text-align: left;
+}
+
+.wallet-auth-description p {
+  color: #6b7280;
+  font-size: 14px;
+  line-height: 1.5;
+  margin-bottom: 12px;
+}
+
+.wallet-auth-security {
+  color: #10b981 !important;
+  font-weight: 500 !important;
+  text-align: center !important;
+  margin-bottom: 0 !important;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+  .wallet-auth-container {
+    margin: 10px;
+    min-height: 300px;
+  }
+  
+  .wallet-auth-card {
+    padding: 24px;
+    margin: 0 10px;
+  }
+  
+  .wallet-auth-icon {
+    font-size: 40px;
+  }
+  
+  .wallet-auth-card h3 {
+    font-size: 20px;
+  }
+  
+  .wallet-auth-button {
+    padding: 14px 24px;
+    font-size: 14px;
+    min-width: 180px;
+  }
+} 

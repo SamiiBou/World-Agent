@@ -11,8 +11,8 @@ html, body {
     sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
-  overflow-x: hidden;
-  overflow-y: auto;
+  /* Removed overflow: hidden to allow scrolling on mobile */
+  -webkit-overflow-scrolling: touch; /* Smooth scrolling on iOS */
 }
 
 .App {
@@ -104,6 +104,13 @@ code {
   border-radius: 8px;
   transition: all 0.2s ease;
   border: 1px solid transparent;
+  /* Improve touch targets for mobile */
+  min-height: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
 }
 
 .nav-bar a:hover {
@@ -123,6 +130,40 @@ code {
   margin: 0;
 }
 
+/* User Info Section */
+.user-info {
+  background: rgba(255, 255, 255, 0.1);
+  backdrop-filter: blur(10px);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+  padding: 0.75rem 1rem;
+  margin-bottom: 0;
+}
+
+.authenticated-user {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 1rem;
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+.welcome-text {
+  color: white;
+  font-weight: 600;
+  font-size: 1rem;
+}
+
+.wallet-address {
+  color: rgba(255, 255, 255, 0.8);
+  font-family: 'Monaco', 'Menlo', monospace;
+  font-size: 0.875rem;
+  background: rgba(255, 255, 255, 0.1);
+  padding: 0.25rem 0.5rem;
+  border-radius: 6px;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
 /* Responsive navigation */
 @media (max-width: 768px) {
   .nav-bar ul {
@@ -132,5 +173,30 @@ code {
   
   .nav-bar {
     padding: 0.5rem;
+  }
+  
+  .nav-bar a {
+    /* Larger touch targets on mobile */
+    min-height: 48px;
+    padding: 0.75rem 1rem;
+    font-size: 1.1rem;
+  }
+  
+  .authenticated-user {
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+  
+  .welcome-text {
+    font-size: 0.875rem;
+  }
+  
+  .wallet-address {
+    font-size: 0.75rem;
+  }
+  
+  /* Prevent zoom on form inputs */
+  input, select, textarea {
+    font-size: 16px;
   }
 }

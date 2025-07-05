@@ -223,12 +223,15 @@
   padding: 12px 16px;
   border: 2px solid #e2e8f0;
   border-radius: 22px;
-  font-size: 14px;
+  font-size: 16px; /* Prevent zoom on iOS */
   line-height: 1.4;
   resize: none;
   font-family: inherit;
   background: #fff;
   transition: all 0.2s ease;
+  /* Mobile touch improvements */
+  -webkit-appearance: none;
+  -webkit-tap-highlight-color: transparent;
 }
 
 .message-input:focus {
@@ -256,6 +259,9 @@
   display: flex;
   align-items: center;
   justify-content: center;
+  /* Mobile touch improvements */
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
 }
 
 .send-button:hover:not(:disabled) {
