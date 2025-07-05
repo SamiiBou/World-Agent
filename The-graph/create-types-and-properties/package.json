@@ -1,0 +1,22 @@
+{
+  "name": "create-grc-20-properties-and-types",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "type": "module",
+  "scripts": {
+    "create-private-key": "node --experimental-strip-types create-private-key.ts",
+    "create-types": "node --experimental-strip-types index.ts"
+  },
+  "license": "MIT",
+  "packageManager": "pnpm@10.12.4",
+  "devDependencies": {
+    "@types/node": "^22.13.10",
+    "typescript": "^5.8.2"
+  },
+  "dependencies": {
+    "@graphprotocol/grc-20": "^0.21.3",
+    "dotenv": "^17.0.1",
+    "viem": "^2.31.7"
+  }
+}
