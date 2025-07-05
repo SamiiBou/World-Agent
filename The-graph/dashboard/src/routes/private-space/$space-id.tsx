@@ -31,6 +31,10 @@ function RouteComponent() {
 function PrivateSpace({ spaceId }: { spaceId: string }) {
   const { name, ready } = useSpace({ mode: 'private' });
 
+  // Add sorting state
+  const [sortBy, setSortBy] = useState<'name' | 'type' | 'recent'>('name');
+  const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc');
+
   // Query all entity types - Updated to include refetch functions
   const { data: accounts, refetch: refetchAccounts } = useQuery(Account, { mode: 'private' });
   const { data: worldIDs, refetch: refetchWorldIDs } = useQuery(WorldID, { mode: 'private' });
@@ -83,6 +87,30 @@ function PrivateSpace({ spaceId }: { spaceId: string }) {
     ...(tokenHoldings?.map((entity) => ({ ...entity, entityType: 'TokenHolding' })) || []),
     ...(transferEvents?.map((entity) => ({ ...entity, entityType: 'TransferEvents' })) || []),
   ];
+
+  // Sort entities based on current sort settings
+  const sortedEntities = [...allEntities].sort((a, b) => {
+    let compareValue = 0;
+
+    switch (sortBy) {
+      case 'name':
+        const nameA = getEntityDisplayName(a).toLowerCase();
+        const nameB = getEntityDisplayName(b).toLowerCase();
+        compareValue = nameA.localeCompare(nameB);
+        break;
+      case 'type':
+        compareValue = a.entityType.localeCompare(b.entityType);
+        break;
+      case 'recent':
+        // Sort by entity creation order (index-based for now)
+        compareValue = 0; // Keep original order for recent
+        break;
+      default:
+        compareValue = 0;
+    }
+
+    return sortOrder === 'asc' ? compareValue : -compareValue;
+  });
 
   // Add refetch function for all entities
   const refetchAllEntities = () => {
@@ -753,7 +781,30 @@ function PrivateSpace({ spaceId }: { spaceId: string }) {
         <div className="bg-white/5 backdrop-blur-sm rounded-xl p-8 border border-white/10">
           <div className="flex items-center justify-between mb-8">
             <h2 className="text-2xl font-bold text-white">All Entities</h2>
-            <div className="text-gray-400 text-sm">{allEntities.length} entities in this space</div>
+            <div className="flex items-center space-x-4">
+              <div className="text-gray-400 text-sm">{allEntities.length} entities in this space</div>
+
+              {/* Sorting Controls */}
+              <div className="flex items-center space-x-2">
+                <select
+                  value={sortBy}
+                  onChange={(e) => setSortBy(e.target.value as 'name' | 'type' | 'recent')}
+                  className="px-3 py-2 bg-white/10 border border-white/20 rounded-lg text-white text-sm focus:outline-none focus:border-purple-400"
+                >
+                  <option value="name">Sort by Name</option>
+                  <option value="type">Sort by Type</option>
+                  <option value="recent">Sort by Recent</option>
+                </select>
+
+                <button
+                  onClick={() => setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc')}
+                  className="px-3 py-2 bg-white/10 border border-white/20 rounded-lg text-white text-sm hover:bg-white/20 transition-colors flex items-center space-x-1"
+                >
+                  <span>{sortOrder === 'asc' ? '↑' : '↓'}</span>
+                  <span>{sortOrder === 'asc' ? 'Asc' : 'Desc'}</span>
+                </button>
+              </div>
+            </div>
           </div>
 
           {allEntities.length === 0 ? (
@@ -772,7 +823,7 @@ function PrivateSpace({ spaceId }: { spaceId: string }) {
             </div>
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {allEntities.map((entity, index) => {
+              {sortedEntities.map((entity, index) => {
                 const config = entityTypes[entity.entityType as keyof typeof entityTypes];
                 return (
                   <div

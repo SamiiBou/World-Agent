@@ -1,5 +1,6 @@
 import { useSpaces } from '@graphprotocol/hypergraph-react';
 import { createFileRoute, Link } from '@tanstack/react-router';
+import { useState } from 'react';
 
 export const Route = createFileRoute('/')({
   component: Index,
@@ -7,6 +8,31 @@ export const Route = createFileRoute('/')({
 
 function Index() {
   const { data: publicSpaces, isPending: publicSpacesPending } = useSpaces({ mode: 'public' });
+
+  // Add sorting state for spaces
+  const [sortBy, setSortBy] = useState<'name' | 'recent'>('name');
+  const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc');
+
+  // Sort spaces based on current sort settings
+  const sortedSpaces = publicSpaces
+    ? [...publicSpaces].sort((a, b) => {
+        let compareValue = 0;
+
+        switch (sortBy) {
+          case 'name':
+            compareValue = a.name.toLowerCase().localeCompare(b.name.toLowerCase());
+            break;
+          case 'recent':
+            // Sort by space ID as a proxy for creation order
+            compareValue = a.id.localeCompare(b.id);
+            break;
+          default:
+            compareValue = 0;
+        }
+
+        return sortOrder === 'asc' ? compareValue : -compareValue;
+      })
+    : [];
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-900 via-blue-900 to-purple-900">
@@ -22,22 +48,6 @@ function Index() {
           </p>
         </div>
 
-        {/* Stats Section */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mb-16">
-          <div className="bg-white/10 backdrop-blur-sm rounded-xl p-6 text-center">
-            <div className="text-3xl font-bold text-blue-400 mb-2">{publicSpaces?.length || 0}</div>
-            <div className="text-gray-300">Public Spaces</div>
-          </div>
-          <div className="bg-white/10 backdrop-blur-sm rounded-xl p-6 text-center">
-            <div className="text-3xl font-bold text-green-400 mb-2">{publicSpaces?.length || 0}</div>
-            <div className="text-gray-300">Active Agents</div>
-          </div>
-          <div className="bg-white/10 backdrop-blur-sm rounded-xl p-6 text-center">
-            <div className="text-3xl font-bold text-purple-400 mb-2">24/7</div>
-            <div className="text-gray-300">Availability</div>
-          </div>
-        </div>
-
         {/* Main Content */}
         <div className="bg-white/5 backdrop-blur-sm rounded-xl p-8 border border-white/10">
           <div className="flex items-center justify-between mb-8">
@@ -45,7 +55,31 @@ function Index() {
               <div className="w-4 h-4 bg-green-400 rounded-full mr-4 animate-pulse"></div>
               <h2 className="text-3xl font-bold text-white">Public Agent Spaces</h2>
             </div>
-            <div className="text-gray-400 text-sm">{publicSpaces?.length || 0} spaces available</div>
+            <div className="flex items-center space-x-4">
+              <div className="text-gray-400 text-sm">{publicSpaces?.length || 0} spaces available</div>
+
+              {/* Sorting Controls */}
+              {publicSpaces && publicSpaces.length > 0 && (
+                <div className="flex items-center space-x-2">
+                  <select
+                    value={sortBy}
+                    onChange={(e) => setSortBy(e.target.value as 'name' | 'recent')}
+                    className="px-3 py-2 bg-white/10 border border-white/20 rounded-lg text-white text-sm focus:outline-none focus:border-blue-400"
+                  >
+                    <option value="name">Sort by Name</option>
+                    <option value="recent">Sort by Recent</option>
+                  </select>
+
+                  <button
+                    onClick={() => setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc')}
+                    className="px-3 py-2 bg-white/10 border border-white/20 rounded-lg text-white text-sm hover:bg-white/20 transition-colors flex items-center space-x-1"
+                  >
+                    <span>{sortOrder === 'asc' ? '↑' : '↓'}</span>
+                    <span>{sortOrder === 'asc' ? 'A-Z' : 'Z-A'}</span>
+                  </button>
+                </div>
+              )}
+            </div>
           </div>
 
           {publicSpacesPending ? (
@@ -71,7 +105,7 @@ function Index() {
             </div>
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {publicSpaces?.map((space, index) => (
+              {sortedSpaces.map((space, index) => (
                 <Link
                   key={space.id}
                   to="/public-space/$space-id"
