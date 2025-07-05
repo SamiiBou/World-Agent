@@ -12,6 +12,7 @@ export default function IdentityLinking() {
   const [verificationResult, setVerificationResult] = useState<WorldIdVerificationResult | null>(null);
   const [walletAddress, setWalletAddress] = useState<string>('');
   const [verificationLevel, setVerificationLevel] = useState<VerificationLevel>(VerificationLevel.Orb);
+  const [ensName, setEnsName] = useState<string>(() => localStorage.getItem('ensName') || '');
 
   useEffect(() => {
     // Get wallet address from authentication state
@@ -80,6 +81,16 @@ export default function IdentityLinking() {
       });
     } finally {
       setIsVerifying(false);
+    }
+  };
+
+  const handleSaveENS = async () => {
+    if (!ensName) return;
+    try {
+      localStorage.setItem('ensName', ensName);
+      alert('ENS saved! You can now link it when saving an agent.');
+    } catch (err) {
+      console.error('Saving ENS failed', err);
     }
   };
 
@@ -236,6 +247,22 @@ export default function IdentityLinking() {
               </div>
             </div>
           )}
+        </div>
+
+        {/* ENS Linking Section */}
+        <div className="ens-linking-section">
+          <h3>🔗 Link your ENS</h3>
+          <p>Provide an ENS name you control – it will later be linked to your agent address and store World/Self metadata.</p>
+          <div className="ens-input-group">
+            <input
+              type="text"
+              value={ensName}
+              onChange={(e) => setEnsName(e.target.value)}
+              placeholder="myname.eth"
+              style={{ padding: '8px', border: '1px solid #ccc', borderRadius: '4px', width: '250px' }}
+            />
+            <button onClick={handleSaveENS} style={{ marginLeft: '10px' }}>Save ENS</button>
+          </div>
         </div>
       </div>
     );

@@ -23,7 +23,7 @@ app.set('trust proxy', 1);
 // Security middleware
 app.use(helmet());
 app.use(cors({
-  origin: process.env.FRONTEND_URL || 'http://localhost:5173',
+  origin: process.env.PUBLIC_URL || 'http://localhost:5173',
   credentials: true
 }));
 
@@ -782,7 +782,15 @@ app.put('/api/agents/:id', authenticateWallet, async (req, res) => {
 app.use('/api/worldid', worldIdVerifyRoute);
 app.use('/api/self', selfVerifyRoute);
 
+<<<<<<< HEAD
+// Agent linking routes
+const agentLinkRouter = require('./routes/agentLink');
+app.use('/api/agents', agentLinkRouter);
+
+// Route pour générer un nonce pour l'authentification SIWE
+=======
 // Route to generate a nonce for SIWE authentication
+>>>>>>> 8bdda5020fdd53a48a029a262c6bce3db2d4b357
 app.get('/api/nonce', (req, res) => {
   try {
     // Generate a nonce that is at least 8 alphanumeric characters

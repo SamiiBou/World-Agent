@@ -3,6 +3,7 @@ import { BrowserRouter as Router, Routes, Route, Link } from 'react-router-dom';
 import { ChatInterface } from './components/ChatInterface';
 import IdentityLinking from './components/IdentityLinking';
 import ImportAgent from './components/ImportAgent';
+import AgentLinking from './components/AgentLinking';
 import MiniKitStatus from './components/MiniKitStatus';
 import AuthGuard from './components/AuthGuard';
 import WalletAuth from './components/WalletAuth';
@@ -20,7 +21,7 @@ function App() {
     const initMiniKit = async () => {
       try {
         console.log('🔧 Initializing MiniKit...');
-        const initialized = MiniKitService.init();
+        MiniKitService.init();
         
         // Wait a moment for MiniKit to be ready
         setTimeout(() => {
@@ -73,6 +74,9 @@ function App() {
                 <Link to="/identity-link">Link Identity</Link>
               </li>
               <li>
+                <Link to="/agent-link">Link Agent</Link>
+              </li>
+              <li>
                 <Link to="/wallet-auth">Wallet Auth</Link>
               </li>
             </ul>
@@ -97,6 +101,7 @@ function App() {
             <Routes>
               <Route path="/" element={<ChatInterface />} />
               <Route path="/identity-link" element={<IdentityLinking />} />
+              <Route path="/agent-link" element={<AgentLinking />} />
               <Route path="/wallet-auth" element={<WalletAuth />} />
             </Routes>
           </div>
