@@ -110,29 +110,27 @@ class AgentService {
   private generateSimulatedResponse(message: string, selectedAgent?: Agent): string {
     const lowerMessage = message.toLowerCase();
     
-    if (lowerMessage.includes('hello') || lowerMessage.includes('hi')) {
-      if (selectedAgent) {
-        return `Hello! I'm ${selectedAgent.name} ${selectedAgent.avatar}, your AI assistant with World Chain integration.
-
-🌍 My World Chain address: ${selectedAgent.address}
-💰 Current balance: ${selectedAgent.balance} ETH
-🔗 I can help you with Web3 operations, file management, API calls, and more.
-
-How can I assist you today?`;
-      } else {
-        const agentAddress = worldchainService.getAgentAddress();
-        return `Hello! I'm ${config.agent.name}, your AI assistant with MCP support. 
-
-🌍 I have my own World Chain address: ${agentAddress || 'Initializing...'}
-🔗 I can help you with Web3 operations, file management, API calls, and more. 
-
-How can I assist you today?`;
-      }
+    // Casual greetings
+    if (lowerMessage.includes('hello') || lowerMessage.includes('hi') || lowerMessage.includes('hey')) {
+      const agentName = selectedAgent ? selectedAgent.name : config.agent.name;
+      const avatar = selectedAgent ? selectedAgent.avatar : '🤖';
+      return `Hey there! I'm ${agentName} ${avatar}. I'm here to help with Web3 operations, file management, and API calls. What can I do for you today?`;
     }
     
+    // Personal questions
+    if (lowerMessage.includes('how are you') || lowerMessage.includes('what\'s up') || lowerMessage.includes('how old are you')) {
+      return `I'm doing great, thanks for asking! I'm an AI agent built to help with Web3 and automation tasks. I'm always ready to assist you with blockchain operations, file management, or API calls. What would you like to work on?`;
+    }
+    
+    // Age-related questions
+    if (lowerMessage.includes('age') || lowerMessage.includes('old')) {
+      return `I'm a digital AI agent, so I don't have an age in the traditional sense! But I was created to help with Web3 operations and automation. I'm constantly learning and improving. How can I help you today?`;
+    }
+    
+    // Address/wallet info
     if (lowerMessage.includes('address') || lowerMessage.includes('wallet') || lowerMessage.includes('worldchain')) {
       if (selectedAgent) {
-        return `🏦 My World Chain wallet information:
+        return `🏦 Here's my World Chain wallet info:
 📍 Address: ${selectedAgent.address}
 💰 Balance: ${selectedAgent.balance} ETH
 🔗 Explorer: https://worldchain-mainnet.explorer.alchemy.com/address/${selectedAgent.address}
@@ -142,7 +140,7 @@ You can send me ETH on World Chain to this address!`;
       } else {
         const agentAddress = worldchainService.getAgentAddress();
         const explorerUrl = worldchainService.getExplorerUrl();
-        return `🏦 My World Chain wallet information:
+        return `🏦 Here's my World Chain wallet info:
 📍 Address: ${agentAddress || 'Initializing...'}
 🔗 Explorer: ${explorerUrl}
 🌍 Network: ${config.worldchain.chainName} (Chain ID: ${config.worldchain.chainId})
@@ -151,28 +149,41 @@ You can send me ETH on World Chain to this address!`;
       }
     }
     
+    // Balance inquiries
     if (lowerMessage.includes('balance')) {
       return "I can help you check crypto balances! I can check:\n- My own World Chain balance\n- Any address on World Chain\n- Just ask: 'What's my balance?' or 'Check balance of [address]'";
     }
     
+    // Transfer operations
     if (lowerMessage.includes('transfer') || lowerMessage.includes('send')) {
       return "I can help you with crypto transfers on World Chain! Please provide the destination address and amount in ETH.";
     }
     
+    // File operations
     if (lowerMessage.includes('file') || lowerMessage.includes('read') || lowerMessage.includes('write')) {
       return "I can help you with file operations! I can read file contents or write to files. Please specify the file path and what you'd like to do.";
     }
     
+    // API calls
     if (lowerMessage.includes('api') || lowerMessage.includes('call')) {
       return "I can make API calls for you! Please provide the URL, HTTP method, and any necessary headers or body data.";
     }
     
+    // Help requests
     if (lowerMessage.includes('tool') || lowerMessage.includes('help')) {
       return "I have access to several MCP tools:\n- 🌍 worldchain_balance: Check World Chain balances\n- 💸 worldchain_transfer: Send ETH on World Chain\n- 📁 file_read: Read file contents\n- 📝 file_write: Write to files\n- 🌐 api_call: Make API calls\n\nWhat would you like to do?";
     }
     
+    // Default response - more natural and helpful
     const agentName = selectedAgent ? selectedAgent.name : config.agent.name;
-    return `I understand you're asking about: "${message}". I'm ${agentName}, equipped with MCP tools to help with Web3 operations (including World Chain), file management, and API calls. Could you please be more specific about what you'd like me to do?`;
+    
+    // Try to be more helpful based on context
+    if (lowerMessage.includes('what') || lowerMessage.includes('how') || lowerMessage.includes('why')) {
+      return `That's a great question! I'm ${agentName} and I specialize in Web3 operations, file management, and API calls. Could you be more specific about what you'd like to know or do? For example, you could ask me to check a balance, make a transfer, or read a file.`;
+    }
+    
+    // For other casual conversation
+    return `I'm ${agentName}, your Web3 AI assistant! I can help with blockchain operations, file management, and API calls. What would you like to work on today?`;
   }
 
   private async shouldUseTool(message: string): Promise<boolean> {

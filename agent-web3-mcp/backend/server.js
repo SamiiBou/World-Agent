@@ -4,18 +4,24 @@ const cors = require('cors');
 const helmet = require('helmet');
 const rateLimit = require('express-rate-limit');
 const ethers = require('ethers');
+const crypto = require('crypto');
 require('dotenv').config();
 
 const Agent = require('./models/Agent');
+const User = require('./models/User');
 const worldchainService = require('./services/worldchainService');
+const worldIdVerifyRoute = require('./routes/worldIdVerify');
 
 const app = express();
 const PORT = process.env.PORT || 3001;
 
+// Configuration du proxy trust (nécessaire pour rate limiting)
+app.set('trust proxy', 1);
+
 // Middleware de sécurité
 app.use(helmet());
 app.use(cors({
-  origin: process.env.FRONTEND_URL || 'http://localhost:3000',
+  origin: process.env.FRONTEND_URL || 'http://localhost:5173',
   credentials: true
 }));
 
@@ -130,7 +136,7 @@ app.post('/api/agents', async (req, res) => {
     // Return the agent with clean info
     res.status(201).json({
       message: 'Agent created successfully',
-      agent: agent.toCleanJSON(),
+      agent: agent.getPublicInfo(),
       explorerUrl: `https://worldchain-mainnet.explorer.alchemy.com/address/${address}`,
       note: 'Agent created with World Chain address'
     });
@@ -161,7 +167,7 @@ app.get('/api/agents', async (req, res) => {
     const total = await Agent.countDocuments(query);
     
     res.json({
-      agents: agents.map(agent => agent.toCleanJSON()),
+      agents: agents.map(agent => agent.getPublicInfo()),
       pagination: {
         total,
         limit: parseInt(limit),
@@ -190,7 +196,7 @@ app.get('/api/agents/:id', async (req, res) => {
     }
     
     res.json({
-      agent: agent.toCleanJSON(),
+      agent: agent.getPublicInfo(),
       explorerUrl: `https://worldchain-mainnet.explorer.alchemy.com/address/${agent.worldchain.address}`,
       note: 'Agent information retrieved'
     });
@@ -351,7 +357,7 @@ app.put('/api/agents/:id', async (req, res) => {
     
     res.json({
       message: 'Agent updated successfully',
-      agent: agent.toCleanJSON()
+      agent: agent.getPublicInfo()
     });
   } catch (error) {
     console.error('Agent update error:', error);
@@ -365,6 +371,108 @@ app.put('/api/agents/:id', async (req, res) => {
 // Self verification routes
 const selfVerifyRouter = require('./routes/selfVerify');
 app.use('/api', selfVerifyRouter);
+
+// World ID verification routes
+app.use('/api/worldid', worldIdVerifyRoute);
+
+// Route pour générer un nonce pour l'authentification SIWE
+app.get('/api/nonce', (req, res) => {
+  try {
+    // Generate a nonce that is at least 8 alphanumeric characters
+    const nonce = crypto.randomUUID().replace(/-/g, '');
+    
+    // In a production app, you would store this nonce securely
+    // For now, we'll just return it and rely on the frontend to pass it back
+    res.json({
+      nonce: nonce,
+      timestamp: new Date().toISOString()
+    });
+  } catch (error) {
+    console.error('Nonce generation error:', error);
+    res.status(500).json({
+      error: 'Error generating nonce',
+      details: error.message
+    });
+  }
+});
+
+// Route pour compléter l'authentification SIWE
+app.post('/api/complete-siwe', async (req, res) => {
+  try {
+    const { payload, nonce, userInfo } = req.body;
+    
+    // Validate required fields
+    if (!payload || !nonce) {
+      return res.status(400).json({
+        error: 'Missing required fields: payload and nonce'
+      });
+    }
+    
+    // Basic validation of the payload
+    if (payload.status !== 'success') {
+      return res.status(400).json({
+        error: 'Authentication failed',
+        details: 'Invalid payload status'
+      });
+    }
+    
+    // In a production app, you would:
+    // 1. Verify the nonce matches the one you generated
+    // 2. Use verifySiweMessage from @worldcoin/minikit-js to verify the signature
+    // 3. Store the user's wallet address and authentication state
+    
+    // For now, we'll do basic validation and store the user info
+    const walletAddress = payload.address;
+    
+    if (!walletAddress) {
+      return res.status(400).json({
+        error: 'No wallet address provided'
+      });
+    }
+    
+    // Here you would typically save the user's authentication state
+    // For now, we'll just return success
+    res.json({
+      status: 'success',
+      isValid: true,
+      walletAddress: walletAddress,
+      username: userInfo?.username || null,
+      timestamp: new Date().toISOString(),
+      message: 'Authentication successful'
+    });
+    
+  } catch (error) {
+    console.error('SIWE completion error:', error);
+    res.status(500).json({
+      status: 'error',
+      isValid: false,
+      error: 'Authentication verification failed',
+      details: error.message
+    });
+  }
+});
+
+// Route pour vérifier le statut d'authentification
+app.get('/api/auth-status/:address', async (req, res) => {
+  try {
+    const { address } = req.params;
+    
+    // In a production app, you would check if the address is authenticated
+    // For now, we'll return a basic response
+    res.json({
+      isAuthenticated: true,
+      walletAddress: address,
+      timestamp: new Date().toISOString()
+    });
+    
+  } catch (error) {
+    console.error('Auth status check error:', error);
+    res.status(500).json({
+      error: 'Error checking authentication status',
+      details: error.message
+    });
+  }
+});
 
 // Middleware de gestion d'erreur
 app.use((err, req, res, next) => {

@@ -17,7 +17,8 @@
     "bcrypt": "^5.1.1",
     "jsonwebtoken": "^9.0.2",
     "helmet": "^7.0.0",
-    "express-rate-limit": "^6.10.0"
+    "express-rate-limit": "^6.10.0",
+    "@worldcoin/minikit-js": "^1.9.6"
   },
   "devDependencies": {
     "nodemon": "^3.0.1"
