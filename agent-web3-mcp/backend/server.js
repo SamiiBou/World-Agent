@@ -23,7 +23,11 @@ app.set('trust proxy', 1);
 // Security middleware
 app.use(helmet());
 app.use(cors({
-  origin: process.env.PUBLIC_URL || 'http://localhost:5173',
+  origin: [
+    'http://localhost:5173',
+    'https://77789bb5180a.ngrok.app',
+    'https://37b2a30b1f1c.ngrok.app'
+  ],
   credentials: true
 }));
 
@@ -190,22 +194,13 @@ app.post('/api/agents', authenticateWallet, async (req, res) => {
     
     console.log('✅ Generated unique username:', username);
     
-    // Check if user has both World ID and Self ID verifications
-    if (!user.worldIdVerification?.isVerified) {
-      console.log('❌ World ID verification missing');
-      console.log('🔍 World ID verification data:', user.worldIdVerification);
+/*     // Check if user has at least one verification (World ID or Self ID)
+    if (!user.worldIdVerification?.isVerified && !user.selfIdVerification?.isVerified) {
+      console.log('❌ No identity verification found');
       return res.status(400).json({
-        error: 'World ID verification is required to create an agent'
+        error: 'At least one identity verification (World ID or Self ID) is required to create an agent'
       });
-    }
-    
-    if (!user.selfIdVerification?.isVerified) {
-      console.log('❌ Self ID verification missing');
-      console.log('🔍 Self ID verification data:', user.selfIdVerification);
-      return res.status(400).json({
-        error: 'Self ID verification is required to create an agent'
-      });
-    }
+    } */
     
     console.log('✅ All validations passed');
     
@@ -782,15 +777,12 @@ app.put('/api/agents/:id', authenticateWallet, async (req, res) => {
 app.use('/api/worldid', worldIdVerifyRoute);
 app.use('/api/self', selfVerifyRoute);
 
-<<<<<<< HEAD
 // Agent linking routes
 const agentLinkRouter = require('./routes/agentLink');
 app.use('/api/agents', agentLinkRouter);
 
 // Route pour générer un nonce pour l'authentification SIWE
-=======
 // Route to generate a nonce for SIWE authentication
->>>>>>> 8bdda5020fdd53a48a029a262c6bce3db2d4b357
 app.get('/api/nonce', (req, res) => {
   try {
     // Generate a nonce that is at least 8 alphanumeric characters

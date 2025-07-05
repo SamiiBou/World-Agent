@@ -1,9 +1,0 @@
-agent:
-  authtoken: 2ygCkGJPeg7ZnwtkjwtAI4pitZa_49zwvjP1Zqb6yi2JNpKpg
-  tunnels:
-  backend:
-    addr: 5174
-    proto: http
-  frontend:
-    addr: 5173
-    proto: http

@@ -61,7 +61,7 @@ class VCService {
   private backendUrl: string;
 
   constructor() {
-    this.backendUrl = process.env.REACT_APP_API_URL || 'https://7048b6546b0f.ngrok.app/api';
+    this.backendUrl = process.env.REACT_APP_API_URL || 'https://37b2a30b1f1c.ngrok.app/api';
   }
 
   private async fetchAPI(endpoint: string, options: RequestInit = {}) {

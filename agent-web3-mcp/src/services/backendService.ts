@@ -1,6 +1,6 @@
 import { MiniKitService } from './miniKitService';
 
-const API_BASE_URL = process.env.REACT_APP_API_URL || 'https://7048b6546b0f.ngrok.app/api';
+const API_BASE_URL = process.env.REACT_APP_API_URL || 'https://37b2a30b1f1c.ngrok.app/api';
 
 export interface Agent {
   id: string;

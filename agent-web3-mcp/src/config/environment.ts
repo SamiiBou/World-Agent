@@ -1,13 +1,13 @@
 export const config = {
   backend: {
-    baseUrl: process.env.REACT_APP_BACKEND_URL || 'https://7048b6546b0f.ngrok.app',
+    baseUrl: process.env.REACT_APP_BACKEND_URL || 'https://37b2a30b1f1c.ngrok.app',
   },
   openai: {
     apiKey: process.env.REACT_APP_OPENAI_API_KEY || '',
     model: 'gpt-4o',
   },
   mcp: {
-    serverUrl: process.env.REACT_APP_MCP_SERVER_URL || 'https://7048b6546b0f.ngrok.app/mcp',
+    serverUrl: process.env.REACT_APP_MCP_SERVER_URL || 'https://37b2a30b1f1c.ngrok.app/mcp',
     enabled: true,
   },
   worldchain: {

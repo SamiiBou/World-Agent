@@ -6,8 +6,8 @@ This application uses ngrok to expose local development servers to the internet 
 
 ### Active Tunnels
 
-- **Frontend**: `https://399c788608d9.ngrok.app` → `http://localhost:5173`
-- **Backend**: `https://7048b6546b0f.ngrok.app` → `http://localhost:3001`
+- **Frontend**: `https://77789bb5180a.ngrok.app` → `http://localhost:5173`
+- **Backend**: `https://37b2a30b1f1c.ngrok.app` → `http://localhost:3001`
 
 ## Configuration
 
@@ -17,7 +17,7 @@ The backend URL is configured in `src/config/environment.ts`:
 
 ```typescript
 backend: {
-  baseUrl: process.env.REACT_APP_BACKEND_URL || 'https://7048b6546b0f.ngrok.app',
+  baseUrl: process.env.REACT_APP_BACKEND_URL || 'https://37b2a30b1f1c.ngrok.app',
 },
 ```
 
@@ -27,7 +27,7 @@ Create a `.env` file in the frontend root with:
 
 ```bash
 # Backend URL (ngrok tunnel)
-REACT_APP_BACKEND_URL=https://7048b6546b0f.ngrok.app
+REACT_APP_BACKEND_URL=https://37b2a30b1f1c.ngrok.app
 
 # Other environment variables...
 REACT_APP_OPENAI_API_KEY=your_openai_api_key
@@ -45,8 +45,8 @@ When your ngrok URLs change, you need to update:
 ## 📱 Testing with World App
 
 1. Open World App on your device
-2. Navigate to the mini-app using the frontend URL: `https://399c788608d9.ngrok.app`
-3. The app will authenticate using the backend URL: `https://7048b6546b0f.ngrok.app`
+2. Navigate to the mini-app using the frontend URL: `https://77789bb5180a.ngrok.app`
+3. The app will authenticate using the backend URL: `https://37b2a30b1f1c.ngrok.app`
 
 ## 🐛 Troubleshooting
 
@@ -64,7 +64,7 @@ When your ngrok URLs change, you need to update:
    - Backend: `http://localhost:3001`
 3. Test backend endpoints directly:
    ```bash
-   curl https://7048b6546b0f.ngrok.app/api/nonce
+   curl https://37b2a30b1f1c.ngrok.app/api/nonce
    ```
 
 ## 🚀 Starting the Development Environment

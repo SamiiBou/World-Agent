@@ -1,10 +1,11 @@
 import React, { useState, useEffect } from 'react';
-import { SelfQRcodeWrapper, SelfAppBuilder } from '@selfxyz/qrcode';
+import { SelfAppBuilder } from '@selfxyz/qrcode';
 import { v4 as uuidv4 } from 'uuid';
 import './SelfQRCode.css';
 import VerificationStorage from '../utils/verificationStorage';
 import { config } from '../config/environment';
 import MiniKitService from '../services/miniKitService';
+import { getUniversalLink } from '@selfxyz/common';
 
 export default function SelfVerificationQR() {
   const [userId, setUserId] = useState<string | null>(null);
@@ -139,6 +140,9 @@ export default function SelfVerificationQR() {
     }
   }).build();
 
+  // Create the deeplink manually since getUniversalLink is not available
+  const deeplink = getUniversalLink(selfApp);
+
   const handleSuccess = (data?: any) => {
     console.log("✅ Self verification successful!");
     console.log("Verification data:", data);
@@ -237,45 +241,10 @@ export default function SelfVerificationQR() {
   }
 
   return (
-    <div className="verification-container p-6 qr-section">
-      <div className="qr-card">
-        <h2 className="qr-title">Verify Your Identity</h2>
-        <p className="qr-subtitle">
-          Scan this QR code with the <strong>Self</strong> app
-        </p>
-        
-        {/* Show wallet info */}
-        <div className="wallet-info-card">
-          <h4>Linked Wallet Address:</h4>
-          <div className="wallet-address-display">
-            {walletAddress.substring(0, 6)}...{walletAddress.substring(-4)}
-          </div>
-          <p className="wallet-info-text">
-            Your verification will be linked to this wallet address
-          </p>
-        </div>
-
-        <div className="qr-wrapper">
-          <SelfQRcodeWrapper
-            selfApp={selfApp}
-            onSuccess={handleSuccess}
-            onError={handleError}
-            size={350}
-          />
-        </div>
-
-        <p className="qr-user-id">Session ID: {userId.substring(0, 8)}…</p>
-
-        <div className="config-card">
-          <h3>Configuration</h3>
-          <ul className="config-list">
-            <li><span>Minimum Age:</span> 18</li>
-            <li><span>Excluded Countries:</span> Iran, North Korea</li>
-            <li><span>OFAC Check:</span> Enabled</li>
-            <li><span>Wallet Linking:</span> Enabled</li>
-          </ul>
-        </div>
-      </div>
+    <div className="self-deeplink-container">
+      <a href={deeplink} className="self-deeplink-btn" target="_blank" rel="noopener noreferrer">
+        🔗 Open Self App to Verify
+      </a>
     </div>
   );
 }

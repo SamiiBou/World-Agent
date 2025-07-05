@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import MiniKitService from '../services/miniKitService';
 import { MiniKit } from '@worldcoin/minikit-js';
 import './WalletAuth.css';
@@ -26,28 +26,13 @@ const WalletAuth: React.FC<WalletAuthProps> = ({ onAuthSuccess, onAuthError }) =
   const [walletInfo, setWalletInfo] = useState<WalletInfoDisplay>({});
   const [isAuthenticated, setIsAuthenticated] = useState(false);
 
-  // Check authentication status on component mount
-  useEffect(() => {
-    const checkAuthStatus = () => {
-      const authStatus = MiniKitService.isAuthenticated();
-      setIsAuthenticated(authStatus);
-      
-      // If authenticated, collect wallet info
-      if (authStatus) {
-        collectWalletInfo();
-      }
-    };
-    
-    checkAuthStatus();
-  }, []);
-
   const addDebugInfo = (message: string) => {
     const timestampedMessage = `${new Date().toLocaleTimeString()}: ${message}`;
     setDebugInfo(prev => [...prev, timestampedMessage]);
     console.log('🔍 WalletAuth Debug:', timestampedMessage);
   };
 
-  const collectWalletInfo = () => {
+  const collectWalletInfo = useCallback(() => {
     addDebugInfo('Collecting comprehensive wallet information...');
     
     // Get all available MiniKit information
@@ -89,7 +74,22 @@ const WalletAuth: React.FC<WalletAuthProps> = ({ onAuthSuccess, onAuthError }) =
     console.log('👤 MiniKit Device Properties:', JSON.stringify(MiniKit.deviceProperties, null, 2));
     console.log('👤 MiniKit App ID:', MiniKit.appId);
     console.log('👤 MiniKit Installation Status:', MiniKitService.isInstalled());
-  };
+  }, []);
+
+  // Check authentication status on component mount
+  useEffect(() => {
+    const checkAuthStatus = () => {
+      const authStatus = MiniKitService.isAuthenticated();
+      setIsAuthenticated(authStatus);
+      
+      // If authenticated, collect wallet info
+      if (authStatus) {
+        collectWalletInfo();
+      }
+    };
+    
+    checkAuthStatus();
+  }, [collectWalletInfo]);
 
   const handleSignIn = async () => {
     setIsLoading(true);
