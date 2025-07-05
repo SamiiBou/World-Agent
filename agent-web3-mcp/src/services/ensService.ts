@@ -1,4 +1,4 @@
-import { BrowserProvider, ContractRunner, ethers } from 'ethers';
+import { BrowserProvider, ethers } from 'ethers';
 
 /**
  * ENSService provides helper methods to resolve ENS names and set records.
@@ -49,31 +49,36 @@ export class ENSService {
     agentWorldAddress: string;
     worldUsername: string;
     selfNullifier: string;
-    signer: ContractRunner;
+    signer: ethers.Signer;
   }) {
     const { ensName, agentWorldAddress, worldUsername, selfNullifier, signer } = options;
-    const provider = (signer as any).provider as BrowserProvider;
+    const provider: BrowserProvider = (signer.provider as BrowserProvider) || new ethers.BrowserProvider((window as any).ethereum);
 
-    // Basic sanity check
     if (!ethers.isAddress(agentWorldAddress)) {
       throw new Error('Invalid agent world address');
     }
 
-    // 1. Fetch resolver
-    const resolver = await provider.getResolver(ensName);
-    if (!resolver) {
-      throw new Error('ENS resolver not found for this name');
-    }
+    // Fetch resolver address
+    const resolverInfo: any = await provider.getResolver(ensName);
+    if (!resolverInfo) throw new Error('ENS resolver not found for this name');
 
-    // 2. Set address record (ETH coin type)
-    const addrTx = await resolver.connect(signer).setAddress(agentWorldAddress);
+    const resolverAddress: string = typeof resolverInfo === 'string' ? resolverInfo : resolverInfo.address;
 
-    // 3. Set text records
-    const worldTx = await resolver.connect(signer).setText('world_username', worldUsername);
-    const selfTx = await resolver.connect(signer).setText('self_nullifier', selfNullifier);
+    // Minimal ABI for write operations we need
+    const PUBLIC_RESOLVER_ABI = [
+      'function setAddr(bytes32 node, address addr) external',
+      'function setText(bytes32 node, string key, string value) external'
+    ];
 
-    // Await confirmations in parallel
-    await Promise.all([addrTx.wait(), worldTx.wait(), selfTx.wait()]);
+    const resolver = new ethers.Contract(resolverAddress, PUBLIC_RESOLVER_ABI, signer);
+    const node = ethers.namehash(ensName);
+
+    // Submit transactions sequentially or in parallel
+    const txAddr = await resolver.setAddr(node, agentWorldAddress);
+    const txWorld = await resolver.setText(node, 'world_username', worldUsername);
+    const txSelf = await resolver.setText(node, 'self_nullifier', selfNullifier);
+
+    await Promise.all([txAddr.wait(), txWorld.wait(), txSelf.wait()]);
   }
 }
 
