@@ -60,14 +60,6 @@ function PrivateSpaces() {
             Your personal AI agent spaces with enhanced privacy and control. Create, manage, and interact with your
             exclusive AI companions.
           </p>
-          <div className="flex justify-center gap-4">
-            <button className="bg-purple-600 hover:bg-purple-700 text-white px-8 py-3 rounded-lg font-semibold transition-colors">
-              Create Private Space
-            </button>
-            <button className="border border-purple-600 hover:border-purple-500 text-purple-300 px-8 py-3 rounded-lg font-semibold transition-colors">
-              Import Space
-            </button>
-          </div>
         </div>
 
         {/* Debug Panel */}

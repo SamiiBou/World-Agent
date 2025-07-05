@@ -44,3 +44,6 @@ yarn-error.log*
 # Build artifacts
 *.tgz
 *.tar.gz
+
+# Vite
+.vite/

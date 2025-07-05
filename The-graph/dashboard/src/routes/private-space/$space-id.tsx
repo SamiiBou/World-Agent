@@ -1,4 +1,4 @@
-import { WorldID, SelfID, VCProof, TokenHolding, TransferEvents } from '@/schema';
+import { Account, WorldID, SelfID, VCProof, TokenHolding, TransferEvents } from '@/schema';
 import {
   HypergraphSpaceProvider,
   preparePublish,
@@ -32,6 +32,7 @@ function PrivateSpace({ spaceId }: { spaceId: string }) {
   const { name, ready } = useSpace({ mode: 'private' });
 
   // Query all entity types - Updated to include refetch functions
+  const { data: accounts, refetch: refetchAccounts } = useQuery(Account, { mode: 'private' });
   const { data: worldIDs, refetch: refetchWorldIDs } = useQuery(WorldID, { mode: 'private' });
   const { data: selfIDs, refetch: refetchSelfIDs } = useQuery(SelfID, { mode: 'private' });
   const { data: vcProofs, refetch: refetchVCProofs } = useQuery(VCProof, { mode: 'private' });
@@ -42,12 +43,14 @@ function PrivateSpace({ spaceId }: { spaceId: string }) {
   const [selectedSpace, setSelectedSpace] = useState<string>('');
   const [isAddingEntity, setIsAddingEntity] = useState(false);
   const [entityData, setEntityData] = useState<{
+    Account: { name: string; description: string; address: string };
     WorldID: { address: string; timestamp: string; type: string };
     SelfID: { address: string; did: string };
     VCProof: { proofHash: string; issuer: string; type: string };
     TokenHolding: { address: string; token: string; amount: string; network: string };
     TransferEvents: { from: string; to: string; token: string; amount: string; timestamp: string };
   }>({
+    Account: { name: '', description: '', address: '' },
     WorldID: { address: '', timestamp: '', type: '' },
     SelfID: { address: '', did: '' },
     VCProof: { proofHash: '', issuer: '', type: '' },
@@ -61,6 +64,7 @@ function PrivateSpace({ spaceId }: { spaceId: string }) {
   const [parseSuccess, setParseSuccess] = useState('');
 
   // Create entity hooks for all types
+  const createAccount = useCreateEntity(Account);
   const createWorldID = useCreateEntity(WorldID);
   const createSelfID = useCreateEntity(SelfID);
   const createVCProof = useCreateEntity(VCProof);
@@ -72,6 +76,7 @@ function PrivateSpace({ spaceId }: { spaceId: string }) {
 
   // Combine all entities into a single array with type information
   const allEntities = [
+    ...(accounts?.map((entity) => ({ ...entity, entityType: 'Account' })) || []),
     ...(worldIDs?.map((entity) => ({ ...entity, entityType: 'WorldID' })) || []),
     ...(selfIDs?.map((entity) => ({ ...entity, entityType: 'SelfID' })) || []),
     ...(vcProofs?.map((entity) => ({ ...entity, entityType: 'VCProof' })) || []),
@@ -84,6 +89,7 @@ function PrivateSpace({ spaceId }: { spaceId: string }) {
     console.log('=== REFETCH DEBUG START ===');
     console.log('Refreshing all private entities...');
     console.log('Current entity counts:', {
+      accounts: accounts?.length || 0,
       worldIDs: worldIDs?.length || 0,
       selfIDs: selfIDs?.length || 0,
       vcProofs: vcProofs?.length || 0,
@@ -94,6 +100,7 @@ function PrivateSpace({ spaceId }: { spaceId: string }) {
 
     try {
       console.log('Calling refetch functions...');
+      refetchAccounts();
       refetchWorldIDs();
       refetchSelfIDs();
       refetchVCProofs();
@@ -113,6 +120,7 @@ function PrivateSpace({ spaceId }: { spaceId: string }) {
     spaceId,
     ready,
     name,
+    accounts: { count: accounts?.length || 0, data: accounts },
     worldIDs: { count: worldIDs?.length || 0, data: worldIDs },
     selfIDs: { count: selfIDs?.length || 0, data: selfIDs },
     vcProofs: { count: vcProofs?.length || 0, data: vcProofs },
@@ -123,6 +131,17 @@ function PrivateSpace({ spaceId }: { spaceId: string }) {
 
   // Entity type configurations
   const entityTypes = {
+    Account: {
+      fields: [
+        { name: 'name', type: 'text', placeholder: 'Enter account name...', label: 'Account Name' },
+        { name: 'description', type: 'text', placeholder: 'Enter account description...', label: 'Description' },
+        { name: 'address', type: 'text', placeholder: 'Enter account address...', label: 'Address' },
+      ],
+      icon: '👤',
+      color: 'from-indigo-500 to-blue-500',
+      title: 'Account',
+      description: 'Create and manage account profiles',
+    },
     WorldID: {
       fields: [
         { name: 'address', type: 'text', placeholder: 'Enter wallet address...', label: 'Wallet Address' },
@@ -198,137 +217,65 @@ function PrivateSpace({ spaceId }: { spaceId: string }) {
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
+    const formData = new FormData(e.currentTarget);
+    const entityType = formData.get('entityType') as string;
 
-    console.log('=== ENTITY CREATION DEBUG START ===');
-    console.log('Space ID:', spaceId);
-    console.log('Space ready:', ready);
-    console.log('Entity data:', entityData);
-
-    let createdCount = 0;
-    const entitiesToCreate: Array<{ type: string; data: Record<string, any> }> = [];
-
-    // Check each entity type and create if all required fields are filled
-    Object.entries(entityTypes).forEach(([entityType, config]) => {
-      const typeKey = entityType as keyof typeof entityData;
-      const data = entityData[typeKey];
-
-      // Check if all fields for this entity type are filled
-      const allFieldsFilled = config.fields.every((field) => {
-        const value = (data as any)[field.name];
-        return value && value.trim() !== '';
-      });
-
-      if (allFieldsFilled) {
-        // Convert string values to appropriate types
-        const processedData = config.fields.reduce(
-          (acc, field) => {
-            const value = (data as any)[field.name];
-            acc[field.name] = field.type === 'number' ? Number(value) : value;
-            return acc;
-          },
-          {} as Record<string, any>,
-        );
-
-        entitiesToCreate.push({ type: entityType, data: processedData });
-        console.log(`Prepared ${entityType} for creation:`, processedData);
-      }
-    });
-
-    if (entitiesToCreate.length === 0) {
-      alert('Please fill in all required fields for at least one entity type');
-      return;
-    }
-
-    console.log('Entities to create:', entitiesToCreate);
-
-    // Create entities based on filled forms with proper error handling
     try {
-      for (const { type, data } of entitiesToCreate) {
-        console.log(`Creating ${type} with data:`, data);
-
-        try {
-          let result;
-          switch (type) {
-            case 'WorldID':
-              console.log('Calling createWorldID...');
-              result = await createWorldID(data as { address: string; timestamp: number; type: string });
-              console.log('WorldID creation result:', result);
-              break;
-            case 'SelfID':
-              console.log('Calling createSelfID...');
-              result = await createSelfID(data as { address: string; did: string });
-              console.log('SelfID creation result:', result);
-              break;
-            case 'VCProof':
-              console.log('Calling createVCProof...');
-              result = await createVCProof(data as { proofHash: string; issuer: string; type: string });
-              console.log('VCProof creation result:', result);
-              break;
-            case 'TokenHolding':
-              console.log('Calling createTokenHolding...');
-              result = await createTokenHolding(
-                data as { address: string; token: string; amount: number; network: string },
-              );
-              console.log('TokenHolding creation result:', result);
-              break;
-            case 'TransferEvents':
-              console.log('Calling createTransferEvents...');
-              result = await createTransferEvents(
-                data as { from: string; to: string; token: string; amount: number; timestamp: number },
-              );
-              console.log('TransferEvents creation result:', result);
-              break;
-            default:
-              console.error('Unknown entity type:', type);
-              continue;
-          }
-
-          createdCount++;
-          console.log(`Successfully created ${type}. Total created: ${createdCount}`);
-        } catch (entityError) {
-          console.error(`Error creating ${type}:`, entityError);
-          console.error('Entity creation error details:', {
-            message: (entityError as any)?.message,
-            stack: (entityError as any)?.stack,
-            name: (entityError as any)?.name,
+      switch (entityType) {
+        case 'Account':
+          await createAccount(entityData.Account);
+          break;
+        case 'WorldID':
+          await createWorldID({
+            address: entityData.WorldID.address,
+            timestamp: parseInt(entityData.WorldID.timestamp),
+            type: entityData.WorldID.type,
           });
-          alert(`Failed to create ${type}: ${(entityError as any)?.message || 'Unknown error'}`);
-        }
+          break;
+        case 'SelfID':
+          await createSelfID(entityData.SelfID);
+          break;
+        case 'VCProof':
+          await createVCProof(entityData.VCProof);
+          break;
+        case 'TokenHolding':
+          await createTokenHolding({
+            address: entityData.TokenHolding.address,
+            token: entityData.TokenHolding.token,
+            amount: parseFloat(entityData.TokenHolding.amount),
+            network: entityData.TokenHolding.network,
+          });
+          break;
+        case 'TransferEvents':
+          await createTransferEvents({
+            from: entityData.TransferEvents.from,
+            to: entityData.TransferEvents.to,
+            token: entityData.TransferEvents.token,
+            amount: parseFloat(entityData.TransferEvents.amount),
+            timestamp: parseInt(entityData.TransferEvents.timestamp),
+          });
+          break;
+        default:
+          throw new Error(`Unknown entity type: ${entityType}`);
       }
 
-      if (createdCount > 0) {
-        // Reset form
-        setEntityData({
-          WorldID: { address: '', timestamp: '', type: '' },
-          SelfID: { address: '', did: '' },
-          VCProof: { proofHash: '', issuer: '', type: '' },
-          TokenHolding: { address: '', token: '', amount: '', network: '' },
-          TransferEvents: { from: '', to: '', token: '', amount: '', timestamp: '' },
-        });
-        setIsAddingEntity(false);
-
-        alert(`Successfully created ${createdCount} entities!`);
-
-        // Refetch all entities to update the UI
-        console.log('Waiting before refetch...');
-        setTimeout(() => {
-          console.log('Refreshing entities after creation...');
-          refetchAllEntities();
-        }, 2000); // Increased timeout to allow for network propagation
-      } else {
-        alert('No entities were created successfully. Please check the console for errors.');
-      }
-    } catch (error) {
-      console.error('Unexpected error during entity creation:', error);
-      console.error('Error details:', {
-        message: (error as any)?.message,
-        stack: (error as any)?.stack,
-        name: (error as any)?.name,
+      // Reset form and close modal
+      setEntityData({
+        Account: { name: '', description: '', address: '' },
+        WorldID: { address: '', timestamp: '', type: '' },
+        SelfID: { address: '', did: '' },
+        VCProof: { proofHash: '', issuer: '', type: '' },
+        TokenHolding: { address: '', token: '', amount: '', network: '' },
+        TransferEvents: { from: '', to: '', token: '', amount: '', timestamp: '' },
       });
-      alert(`Unexpected error: ${(error as any)?.message || 'Unknown error'}`);
-    }
+      setIsAddingEntity(false);
 
-    console.log('=== ENTITY CREATION DEBUG END ===');
+      // Refresh entities
+      setTimeout(() => refetchAllEntities(), 1000);
+    } catch (error) {
+      console.error(`Error creating ${entityType}:`, error);
+      alert(`Error creating ${entityType}. Please try again.`);
+    }
   };
 
   const updateEntityData = (entityType: keyof typeof entityData, fieldName: string, value: string) => {
@@ -419,6 +366,12 @@ function PrivateSpace({ spaceId }: { spaceId: string }) {
   const generateSampleData = () => {
     const sampleData = [
       {
+        entityType: 'Account',
+        name: 'My Account',
+        description: 'This is my personal account',
+        address: '0x1234567890abcdef1234567890abcdef12345678',
+      },
+      {
         entityType: 'WorldID',
         address: '0x1234567890abcdef1234567890abcdef12345678',
         timestamp: '1703097600',
@@ -494,20 +447,7 @@ function PrivateSpace({ spaceId }: { spaceId: string }) {
   };
 
   const getEntityDisplayName = (entity: any) => {
-    switch (entity.entityType) {
-      case 'WorldID':
-        return entity.address?.slice(0, 8) + '...' || 'WorldID';
-      case 'SelfID':
-        return entity.did?.slice(0, 8) + '...' || 'SelfID';
-      case 'VCProof':
-        return entity.type || 'VCProof';
-      case 'TokenHolding':
-        return `${entity.amount} ${entity.token}` || 'TokenHolding';
-      case 'TransferEvents':
-        return `${entity.amount} ${entity.token}` || 'Transfer';
-      default:
-        return 'Entity';
-    }
+    return entity.entityType || 'Entity';
   };
 
   return (
@@ -720,6 +660,7 @@ function PrivateSpace({ spaceId }: { spaceId: string }) {
                       onClick={() => {
                         setIsAddingEntity(false);
                         setEntityData({
+                          Account: { name: '', description: '', address: '' },
                           WorldID: { address: '', timestamp: '', type: '' },
                           SelfID: { address: '', did: '' },
                           VCProof: { proofHash: '', issuer: '', type: '' },
@@ -758,6 +699,7 @@ function PrivateSpace({ spaceId }: { spaceId: string }) {
             </div>
             <div className="bg-black/30 rounded-lg p-3">
               <div className="text-sm text-gray-400">Entity Counts</div>
+              <div className="text-white font-mono">Account: {accounts?.length || 0}</div>
               <div className="text-white font-mono">WorldID: {worldIDs?.length || 0}</div>
               <div className="text-white font-mono">SelfID: {selfIDs?.length || 0}</div>
               <div className="text-white font-mono">VCProof: {vcProofs?.length || 0}</div>
@@ -774,7 +716,14 @@ function PrivateSpace({ spaceId }: { spaceId: string }) {
               onClick={() => {
                 console.log('=== MANUAL DEBUG ===');
                 console.log('Current state:', { ready, name, spaceId });
-                console.log('Raw query data:', { worldIDs, selfIDs, vcProofs, tokenHoldings, transferEvents });
+                console.log('Raw query data:', {
+                  accounts,
+                  worldIDs,
+                  selfIDs,
+                  vcProofs,
+                  tokenHoldings,
+                  transferEvents,
+                });
                 console.log('All entities:', allEntities);
               }}
               className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm font-semibold transition-colors"
@@ -791,7 +740,7 @@ function PrivateSpace({ spaceId }: { spaceId: string }) {
               onClick={() => {
                 console.log('=== MAPPING DEBUG ===');
                 console.log('Current mapping:', mapping);
-                console.log('Schema entities:', { WorldID, SelfID, VCProof, TokenHolding, TransferEvents });
+                console.log('Schema entities:', { Account, WorldID, SelfID, VCProof, TokenHolding, TransferEvents });
               }}
               className="px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-lg text-sm font-semibold transition-colors"
             >

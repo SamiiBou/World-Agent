@@ -2,6 +2,14 @@ import { Id } from '@graphprotocol/grc-20';
 import type { Mapping } from '@graphprotocol/hypergraph';
 
 export const mapping: Mapping = {
+  Account: {
+    typeIds: [Id.Id('cb69723f-7456-471a-a8ad-3e93ddc3edfe')],
+    properties: {
+      name: Id.Id('a126ca53-0c8e-48d5-b888-82c734c38935'),
+      description: Id.Id('9b1f76ff-9711-404c-861e-59dc3fa7d037'),
+      address: Id.Id('85cebdf1-d84f-4afd-993b-35f182096b59'),
+    },
+  },
   WorldID: {
     typeIds: [Id.Id('bf6ec302-be49-48ba-ae8d-a09be21bfca9')],
     properties: {

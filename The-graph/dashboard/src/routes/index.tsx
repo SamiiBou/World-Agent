@@ -20,14 +20,6 @@ function Index() {
             Discover and interact with intelligent agents in public spaces. Explore the community-driven ecosystem of AI
             companions.
           </p>
-          <div className="flex justify-center gap-4">
-            <button className="bg-blue-600 hover:bg-blue-700 text-white px-8 py-3 rounded-lg font-semibold transition-colors">
-              Explore Public Agents
-            </button>
-            <button className="border border-gray-600 hover:border-gray-500 text-gray-300 px-8 py-3 rounded-lg font-semibold transition-colors">
-              Learn More
-            </button>
-          </div>
         </div>
 
         {/* Stats Section */}

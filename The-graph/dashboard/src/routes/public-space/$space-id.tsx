@@ -1,4 +1,4 @@
-import { WorldID, SelfID, VCProof, TokenHolding, TransferEvents } from '@/schema';
+import { Account, WorldID, SelfID, VCProof, TokenHolding, TransferEvents } from '@/schema';
 import {
   HypergraphSpaceProvider,
   useQuery,
@@ -27,6 +27,7 @@ function PublicSpace({ spaceId }: { spaceId: string }) {
   const { ready, name } = useSpace({ mode: 'public' });
 
   // Query all entity types
+  const { data: accounts, refetch: refetchAccounts } = useQuery(Account, { mode: 'public' });
   const { data: worldIDs, refetch: refetchWorldIDs } = useQuery(WorldID, { mode: 'public' });
   const { data: selfIDs, refetch: refetchSelfIDs } = useQuery(SelfID, { mode: 'public' });
   const { data: vcProofs, refetch: refetchVCProofs } = useQuery(VCProof, { mode: 'public' });
@@ -37,6 +38,7 @@ function PublicSpace({ spaceId }: { spaceId: string }) {
 
   // Combine all entities into a single array with type information
   const allEntities = [
+    ...(accounts?.map((entity) => ({ ...entity, entityType: 'Account' })) || []),
     ...(worldIDs?.map((entity) => ({ ...entity, entityType: 'WorldID' })) || []),
     ...(selfIDs?.map((entity) => ({ ...entity, entityType: 'SelfID' })) || []),
     ...(vcProofs?.map((entity) => ({ ...entity, entityType: 'VCProof' })) || []),
@@ -46,6 +48,10 @@ function PublicSpace({ spaceId }: { spaceId: string }) {
 
   // Entity type configurations
   const entityTypes = {
+    Account: {
+      icon: '👤',
+      color: 'from-indigo-500 to-blue-500',
+    },
     WorldID: {
       icon: '🌍',
       color: 'from-blue-500 to-cyan-500',
@@ -152,6 +158,7 @@ function PublicSpace({ spaceId }: { spaceId: string }) {
 
   const refetchAllEntities = () => {
     console.log('Manually refreshing all entities...');
+    refetchAccounts();
     refetchWorldIDs();
     refetchSelfIDs();
     refetchVCProofs();
@@ -161,6 +168,8 @@ function PublicSpace({ spaceId }: { spaceId: string }) {
 
   const getEntityDisplayName = (entity: any) => {
     switch (entity.entityType) {
+      case 'Account':
+        return entity.name || 'Account';
       case 'WorldID':
         return entity.address?.slice(0, 8) + '...' || 'WorldID';
       case 'SelfID':
@@ -178,6 +187,8 @@ function PublicSpace({ spaceId }: { spaceId: string }) {
 
   const getEntityDescription = (entity: any) => {
     switch (entity.entityType) {
+      case 'Account':
+        return `Account profile: ${entity.description || entity.name}`;
       case 'WorldID':
         return `World ID verification for address ${entity.address}`;
       case 'SelfID':
