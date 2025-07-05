@@ -43,22 +43,7 @@ function PublicSpace({ spaceId }: { spaceId: string }) {
 
   // Define getEntityDisplayName function here, before it's used in sorting
   const getEntityDisplayName = (entity: any) => {
-    switch (entity.entityType) {
-      case 'Account':
-        return entity.name || 'Account';
-      case 'WorldID':
-        return entity.address?.slice(0, 8) + '...' || 'WorldID';
-      case 'SelfID':
-        return entity.did?.slice(0, 8) + '...' || 'SelfID';
-      case 'VCProof':
-        return entity.type || 'VCProof';
-      case 'TokenHolding':
-        return `${entity.amount} ${entity.token}` || 'TokenHolding';
-      case 'TransferEvents':
-        return `${entity.amount} ${entity.token}` || 'Transfer';
-      default:
-        return 'Entity';
-    }
+    return entity.entityType || 'Entity';
   };
 
   // Combine all entities into a single array with type information
