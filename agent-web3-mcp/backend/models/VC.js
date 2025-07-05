@@ -21,8 +21,10 @@ const vcSchema = new mongoose.Schema({
   // Human Proof (identity attestations)
   humanProof: {
     selfId: {
-      attestationId: Number,
       nullifier: String,
+      minimumAgeMet: Boolean,
+      nonOfac: Boolean,
+      nonForbiddenCountry: Boolean,
       verifiedAt: Number
     },
     worldId: {

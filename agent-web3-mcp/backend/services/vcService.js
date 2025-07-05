@@ -35,10 +35,17 @@ class VCService {
 
     // Add Self ID proof if available
     if (user.selfIdVerification && user.selfIdVerification.isVerified) {
-      const selfIdData = user.selfIdVerification.verificationData;
+      const selfVR = user.selfIdVerification.verificationResult || {};
       humanProof.selfId = {
-        attestationId: selfIdData?.attestationId || 1,
-        nullifier: selfIdData?.discloseOutput?.nullifier || selfIdData?.userData?.userIdentifier,
+        nullifier: selfVR?.discloseOutput?.nullifier || selfVR?.userData?.userIdentifier,
+        minimumAgeMet: !!selfVR?.isValidDetails?.isMinimumAgeValid,
+        nonOfac: !!selfVR?.isValidDetails?.isOfacValid,
+        nonForbiddenCountry: (() => {
+          const forbidden = Array.isArray(selfVR?.forbiddenCountriesList) ? selfVR.forbiddenCountriesList : [];
+          const nationality = selfVR?.discloseOutput?.nationality;
+          if (!nationality) return true; // assume true if nationality not provided
+          return !forbidden.includes(nationality);
+        })(),
         verifiedAt: Math.floor(new Date(user.selfIdVerification.verificationDate).getTime() / 1000)
       };
     }

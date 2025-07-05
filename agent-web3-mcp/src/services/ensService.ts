@@ -10,7 +10,9 @@ export class ENSService {
    * Resolve the primary ENS name of an address (if any)
    */
   static async getEnsName(address: string, provider?: BrowserProvider): Promise<string | null> {
-    const _provider = provider || new BrowserProvider((window as any).ethereum);
+    let ethProvider: any = (window as any).ethereum;
+    if (!ethProvider && (window as any).MiniKit?.ethereum) ethProvider = (window as any).MiniKit.ethereum;
+    const _provider = provider || new BrowserProvider(ethProvider);
     try {
       const name = await _provider.lookupAddress(address);
       return name;
@@ -24,7 +26,9 @@ export class ENSService {
    * Get text record from an ENS name
    */
   static async getText(ensName: string, key: string, provider?: BrowserProvider): Promise<string | null> {
-    const _provider = provider || new BrowserProvider((window as any).ethereum);
+    let ethProvider: any = (window as any).ethereum;
+    if (!ethProvider && (window as any).MiniKit?.ethereum) ethProvider = (window as any).MiniKit.ethereum;
+    const _provider = provider || new BrowserProvider(ethProvider);
     try {
       const resolver = await _provider.getResolver(ensName);
       if (!resolver) return null;
@@ -52,7 +56,9 @@ export class ENSService {
     signer: ethers.Signer;
   }) {
     const { ensName, agentWorldAddress, worldUsername, selfNullifier, signer } = options;
-    const provider: BrowserProvider = (signer.provider as BrowserProvider) || new ethers.BrowserProvider((window as any).ethereum);
+    let ethProvider: any = (window as any).ethereum;
+    if (!ethProvider && (window as any).MiniKit?.ethereum) ethProvider = (window as any).MiniKit.ethereum;
+    const provider: BrowserProvider = (signer.provider as BrowserProvider) || new ethers.BrowserProvider(ethProvider);
 
     if (!ethers.isAddress(agentWorldAddress)) {
       throw new Error('Invalid agent world address');

@@ -32,7 +32,20 @@ const AddENS: React.FC = () => {
     setSuccess(null);
 
     try {
-      const provider = new ethers.BrowserProvider((window as any).ethereum);
+      let ethProvider: any = (window as any).ethereum;
+      // Fallback: try MiniKit's injected provider if available
+      if (!ethProvider && (window as any).MiniKit?.ethereum) {
+        ethProvider = (window as any).MiniKit.ethereum;
+      }
+
+      if (!ethProvider) {
+        setError('No Ethereum provider found in this environment. Please open with a wallet such as MetaMask or use a browser with an injected provider.');
+        return;
+      }
+
+      const provider = new ethers.BrowserProvider(ethProvider);
+      // Ensure we have account access
+      await provider.send('eth_requestAccounts', []);
       const signer = await provider.getSigner();
 
       await ENSService.linkEnsToAgent({
