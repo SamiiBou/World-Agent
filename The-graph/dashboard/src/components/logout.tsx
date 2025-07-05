@@ -14,7 +14,12 @@ export function Logout() {
   };
 
   return (
-    <button type="button" onClick={handleLogout} disabled={!authenticated}>
+    <button
+      type="button"
+      onClick={handleLogout}
+      disabled={!authenticated}
+      className="px-4 py-2 bg-red-600 hover:bg-red-700 disabled:bg-gray-600 disabled:cursor-not-allowed text-white rounded-lg font-medium transition-colors duration-200"
+    >
       Logout
     </button>
   );
