@@ -1,5 +1,11 @@
 import { Entity, Type } from '@graphprotocol/hypergraph';
 
+export class Account extends Entity.Class<Account>('Account')({
+  name: Type.Text,
+  description: Type.Text,
+  address: Type.Text,
+}) {}
+
 export class WorldID extends Entity.Class<WorldID>('WorldID')({
   address: Type.Text,
   timestamp: Type.Number,

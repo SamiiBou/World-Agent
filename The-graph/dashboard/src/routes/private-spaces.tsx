@@ -1,5 +1,6 @@
-import { useSpaces, useHypergraphAuth, useHypergraphApp } from '@graphprotocol/hypergraph-react';
+import { useSpaces } from '@graphprotocol/hypergraph-react';
 import { createFileRoute, Link } from '@tanstack/react-router';
+import { useState } from 'react';
 
 export const Route = createFileRoute('/private-spaces')({
   component: PrivateSpaces,
@@ -10,161 +11,102 @@ function PrivateSpaces() {
   const { data: privateSpaces, isPending: privateSpacesPending } = spacesQuery;
   const error = 'error' in spacesQuery ? spacesQuery.error : null;
 
-  // Add authentication debugging
-  const { authenticated, identity } = useHypergraphAuth();
-  const { getSmartSessionClient } = useHypergraphApp();
+  // Add sorting state for spaces
+  const [sortBy, setSortBy] = useState<'name' | 'recent'>('name');
+  const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc');
 
-  // Comprehensive debug logging
-  console.log('=== PRIVATE SPACES COMPREHENSIVE DEBUG ===');
-  console.log('Authentication state:', {
-    authenticated,
-    identity,
-    hasIdentity: !!identity,
-  });
-  console.log('Private spaces query:', {
-    privateSpaces,
-    privateSpacesPending,
-    error,
-    length: privateSpaces?.length,
-    queryState: spacesQuery,
-  });
-  console.log('Full spaces query object:', spacesQuery);
+  // Sort spaces based on current sort settings
+  const sortedSpaces = privateSpaces
+    ? [...privateSpaces].sort((a, b) => {
+        let compareValue = 0;
 
-  // Test smart session client
-  console.log('Testing smart session client...');
-  getSmartSessionClient()
-    .then((client) => {
-      console.log('Smart session client result:', {
-        hasClient: !!client,
-        client: client ? 'Available' : 'Not available',
-      });
-    })
-    .catch((err) => {
-      console.error('Smart session client error:', err);
-    });
+        switch (sortBy) {
+          case 'name':
+            compareValue = a.name.toLowerCase().localeCompare(b.name.toLowerCase());
+            break;
+          case 'recent':
+            // Sort by space ID as a proxy for creation order
+            compareValue = a.id.localeCompare(b.id);
+            break;
+          default:
+            compareValue = 0;
+        }
+
+        return sortOrder === 'asc' ? compareValue : -compareValue;
+      })
+    : [];
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-900 via-purple-900 to-indigo-900">
       <div className="container mx-auto px-6 py-16">
         {/* Hero Section */}
-        <div className="text-center mb-16">
-          <div className="flex justify-center mb-6">
-            <div className="w-16 h-16 bg-gradient-to-r from-purple-400 to-pink-400 rounded-full flex items-center justify-center">
-              <span className="text-white text-2xl">🔒</span>
+        <div className="text-center mb-20">
+          {/* Main Title */}
+          <div className="mb-12">
+            <div className="inline-flex items-center justify-center p-2 bg-white/10 rounded-full mb-6 backdrop-blur-sm border border-white/20">
+              <div className="flex items-center space-x-2 px-4 py-2">
+                <div className="w-2 h-2 bg-purple-400 rounded-full animate-pulse"></div>
+                <span className="text-sm font-medium text-white">Secure & Private</span>
+              </div>
+            </div>
+
+            <h1 className="text-7xl md:text-8xl font-bold text-white mb-6 leading-tight">
+              <span className="bg-gradient-to-r from-purple-400 via-pink-400 to-indigo-400 bg-clip-text text-transparent">
+                Private
+              </span>
+              <br />
+              <span className="text-white">Agent Spaces</span>
+            </h1>
+
+            <div className="max-w-2xl mx-auto">
+              <p className="text-xl text-gray-300 leading-relaxed">
+                Create, manage, and control your{' '}
+                <span className="text-purple-400 font-semibold">personal AI agents</span> in completely private spaces.
+                Choose when to share them with the world.
+              </p>
             </div>
           </div>
-          <h1 className="text-6xl font-bold text-white mb-6 bg-gradient-to-r from-purple-400 to-pink-400 bg-clip-text text-transparent">
-            Private Spaces
-          </h1>
-          <p className="text-xl text-gray-300 mb-8 max-w-3xl mx-auto">
-            Your personal AI agent spaces with enhanced privacy and control. Create, manage, and interact with your
-            exclusive AI companions.
-          </p>
-          <div className="flex justify-center gap-4">
-            <button className="bg-purple-600 hover:bg-purple-700 text-white px-8 py-3 rounded-lg font-semibold transition-colors">
+
+          {/* Feature Cards */}
+          <div className="grid md:grid-cols-3 gap-8 max-w-6xl mx-auto mb-12">
+            <div className="bg-white/5 backdrop-blur-sm rounded-2xl p-8 border border-white/10 hover:bg-white/10 transition-all duration-300 group">
+              <div className="text-4xl mb-4 group-hover:scale-110 transition-transform duration-300">🔒</div>
+              <h3 className="text-xl font-semibold text-white mb-3">Complete Privacy</h3>
+              <p className="text-gray-400 leading-relaxed">
+                Your agents remain completely private until you decide to share them publicly.
+              </p>
+            </div>
+
+            <div className="bg-white/5 backdrop-blur-sm rounded-2xl p-8 border border-white/10 hover:bg-white/10 transition-all duration-300 group">
+              <div className="text-4xl mb-4 group-hover:scale-110 transition-transform duration-300">🎛️</div>
+              <h3 className="text-xl font-semibold text-white mb-3">Full Control</h3>
+              <p className="text-gray-400 leading-relaxed">
+                Upload, configure, and manage your agent data with complete control over access and permissions.
+              </p>
+            </div>
+
+            <div className="bg-white/5 backdrop-blur-sm rounded-2xl p-8 border border-white/10 hover:bg-white/10 transition-all duration-300 group">
+              <div className="text-4xl mb-4 group-hover:scale-110 transition-transform duration-300">🚀</div>
+              <h3 className="text-xl font-semibold text-white mb-3">Easy Publishing</h3>
+              <p className="text-gray-400 leading-relaxed">
+                When ready, seamlessly publish your private agents to public spaces with one click.
+              </p>
+            </div>
+          </div>
+
+          {/* Call to Action */}
+          <div className="flex flex-col sm:flex-row items-center justify-center space-y-4 sm:space-y-0 sm:space-x-6">
+            <button className="bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white px-8 py-4 rounded-xl font-semibold text-lg transition-all duration-300 transform hover:scale-105 shadow-lg hover:shadow-xl">
               Create Private Space
             </button>
-            <button className="border border-purple-600 hover:border-purple-500 text-purple-300 px-8 py-3 rounded-lg font-semibold transition-colors">
-              Import Space
-            </button>
-          </div>
-        </div>
-
-        {/* Debug Panel */}
-        <div className="bg-red-900/20 backdrop-blur-sm rounded-xl p-6 border border-red-500/30 mb-8">
-          <h3 className="text-lg font-semibold text-red-400 mb-4">🐛 Connection Debug Panel</h3>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-4">
-            <div className="bg-black/30 rounded-lg p-3">
-              <div className="text-sm text-gray-400">Authentication</div>
-              <div className="text-white font-mono">
-                Status: {authenticated ? '✅ Authenticated' : '❌ Not Authenticated'}
-              </div>
-              <div className="text-white font-mono">Identity: {identity ? '✅ Present' : '❌ Missing'}</div>
-            </div>
-            <div className="bg-black/30 rounded-lg p-3">
-              <div className="text-sm text-gray-400">Private Spaces Query</div>
-              <div className="text-white font-mono">Pending: {privateSpacesPending ? '⏳ Loading' : '✅ Complete'}</div>
-              <div className="text-white font-mono">Count: {privateSpaces?.length || 0}</div>
-              <div className="text-white font-mono">Error: {error ? '❌ Yes' : '✅ None'}</div>
-            </div>
-            <div className="bg-black/30 rounded-lg p-3">
-              <div className="text-sm text-gray-400">Connection</div>
-              <div className="text-white font-mono">WebSocket: ✅ Connected</div>
-              <div className="text-white font-mono">App Ready: ✅ Loaded</div>
-            </div>
-          </div>
-          <div className="flex space-x-2">
-            <button
-              onClick={() => {
-                console.log('=== MANUAL AUTH DEBUG ===');
-                console.log('Authentication details:', { authenticated, identity });
-                console.log('Full auth object:', { authenticated, identity });
-              }}
-              className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm font-semibold transition-colors"
+            <a
+              href="https://github.com/SamiiBou/World-Agent"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="bg-white/10 backdrop-blur-sm border border-white/20 hover:bg-white/20 text-white px-8 py-4 rounded-xl font-semibold text-lg transition-all duration-300"
             >
-              Log Auth State
-            </button>
-            <button
-              onClick={() => {
-                console.log('=== MANUAL SPACES DEBUG ===');
-                console.log('Spaces query details:', spacesQuery);
-                console.log('Raw data:', privateSpaces);
-                console.log('Pending state:', privateSpacesPending);
-                console.log('Error state:', error);
-              }}
-              className="px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg text-sm font-semibold transition-colors"
-            >
-              Log Spaces Query
-            </button>
-            <button
-              onClick={async () => {
-                console.log('=== SMART CLIENT TEST ===');
-                try {
-                  const client = await getSmartSessionClient();
-                  console.log('Smart session client test result:', {
-                    success: !!client,
-                    client: client,
-                  });
-                } catch (err) {
-                  console.error('Smart session client test failed:', err);
-                }
-              }}
-              className="px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-lg text-sm font-semibold transition-colors"
-            >
-              Test Smart Client
-            </button>
-            <button
-              onClick={() => {
-                console.log('=== REFRESH TEST ===');
-                console.log('Attempting to refresh page...');
-                window.location.reload();
-              }}
-              className="px-4 py-2 bg-yellow-600 hover:bg-yellow-700 text-white rounded-lg text-sm font-semibold transition-colors"
-            >
-              Refresh Page
-            </button>
-          </div>
-          {error && (
-            <div className="mt-4 p-3 bg-red-900/30 rounded-lg border border-red-500/30">
-              <div className="text-red-400 font-semibold">Error Details:</div>
-              <div className="text-red-300 font-mono text-sm">{error.message || JSON.stringify(error)}</div>
-            </div>
-          )}
-        </div>
-
-        {/* Stats Section */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mb-16">
-          <div className="bg-white/10 backdrop-blur-sm rounded-xl p-6 text-center border border-purple-500/20">
-            <div className="text-3xl font-bold text-purple-400 mb-2">{privateSpaces?.length || 0}</div>
-            <div className="text-gray-300">Private Spaces</div>
-          </div>
-          <div className="bg-white/10 backdrop-blur-sm rounded-xl p-6 text-center border border-pink-500/20">
-            <div className="text-3xl font-bold text-pink-400 mb-2">{privateSpaces?.length || 0}</div>
-            <div className="text-gray-300">Active Agents</div>
-          </div>
-          <div className="bg-white/10 backdrop-blur-sm rounded-xl p-6 text-center border border-indigo-500/20">
-            <div className="text-3xl font-bold text-indigo-400 mb-2">100%</div>
-            <div className="text-gray-300">Privacy</div>
+              Learn More
+            </a>
           </div>
         </div>
 
@@ -175,7 +117,31 @@ function PrivateSpaces() {
               <div className="w-4 h-4 bg-purple-400 rounded-full mr-4 animate-pulse"></div>
               <h2 className="text-3xl font-bold text-white">Your Private Agent Spaces</h2>
             </div>
-            <div className="text-gray-400 text-sm">{privateSpaces?.length || 0} spaces available</div>
+            <div className="flex items-center space-x-4">
+              <div className="text-gray-400 text-sm">{privateSpaces?.length || 0} spaces available</div>
+
+              {/* Sorting Controls */}
+              {privateSpaces && privateSpaces.length > 0 && (
+                <div className="flex items-center space-x-2">
+                  <select
+                    value={sortBy}
+                    onChange={(e) => setSortBy(e.target.value as 'name' | 'recent')}
+                    className="px-3 py-2 bg-white/10 border border-white/20 rounded-lg text-white text-sm focus:outline-none focus:border-purple-400"
+                  >
+                    <option value="name">Sort by Name</option>
+                    <option value="recent">Sort by Recent</option>
+                  </select>
+
+                  <button
+                    onClick={() => setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc')}
+                    className="px-3 py-2 bg-white/10 border border-white/20 rounded-lg text-white text-sm hover:bg-white/20 transition-colors flex items-center space-x-1"
+                  >
+                    <span>{sortOrder === 'asc' ? '↑' : '↓'}</span>
+                    <span>{sortOrder === 'asc' ? 'A-Z' : 'Z-A'}</span>
+                  </button>
+                </div>
+              )}
+            </div>
           </div>
 
           {/* Error State */}
@@ -234,7 +200,7 @@ function PrivateSpaces() {
           {/* Spaces Grid */}
           {!error && !privateSpacesPending && privateSpaces && privateSpaces.length > 0 && (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {privateSpaces.map((space, index) => (
+              {sortedSpaces.map((space, index) => (
                 <Link
                   key={space.id}
                   to="/private-space/$space-id"
