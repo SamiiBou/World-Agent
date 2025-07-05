@@ -1,4 +1,4 @@
-import { useSpaces } from '@graphprotocol/hypergraph-react';
+import { useSpaces, useHypergraphAuth, useHypergraphApp } from '@graphprotocol/hypergraph-react';
 import { createFileRoute, Link } from '@tanstack/react-router';
 
 export const Route = createFileRoute('/private-spaces')({
@@ -10,14 +10,38 @@ function PrivateSpaces() {
   const { data: privateSpaces, isPending: privateSpacesPending } = spacesQuery;
   const error = 'error' in spacesQuery ? spacesQuery.error : null;
 
-  // Debug logging
-  console.log('Private spaces debug:', {
+  // Add authentication debugging
+  const { authenticated, identity } = useHypergraphAuth();
+  const { getSmartSessionClient } = useHypergraphApp();
+
+  // Comprehensive debug logging
+  console.log('=== PRIVATE SPACES COMPREHENSIVE DEBUG ===');
+  console.log('Authentication state:', {
+    authenticated,
+    identity,
+    hasIdentity: !!identity,
+  });
+  console.log('Private spaces query:', {
     privateSpaces,
     privateSpacesPending,
     error,
     length: privateSpaces?.length,
     queryState: spacesQuery,
   });
+  console.log('Full spaces query object:', spacesQuery);
+
+  // Test smart session client
+  console.log('Testing smart session client...');
+  getSmartSessionClient()
+    .then((client) => {
+      console.log('Smart session client result:', {
+        hasClient: !!client,
+        client: client ? 'Available' : 'Not available',
+      });
+    })
+    .catch((err) => {
+      console.error('Smart session client error:', err);
+    });
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-900 via-purple-900 to-indigo-900">
@@ -44,6 +68,88 @@ function PrivateSpaces() {
               Import Space
             </button>
           </div>
+        </div>
+
+        {/* Debug Panel */}
+        <div className="bg-red-900/20 backdrop-blur-sm rounded-xl p-6 border border-red-500/30 mb-8">
+          <h3 className="text-lg font-semibold text-red-400 mb-4">🐛 Connection Debug Panel</h3>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-4">
+            <div className="bg-black/30 rounded-lg p-3">
+              <div className="text-sm text-gray-400">Authentication</div>
+              <div className="text-white font-mono">
+                Status: {authenticated ? '✅ Authenticated' : '❌ Not Authenticated'}
+              </div>
+              <div className="text-white font-mono">Identity: {identity ? '✅ Present' : '❌ Missing'}</div>
+            </div>
+            <div className="bg-black/30 rounded-lg p-3">
+              <div className="text-sm text-gray-400">Private Spaces Query</div>
+              <div className="text-white font-mono">Pending: {privateSpacesPending ? '⏳ Loading' : '✅ Complete'}</div>
+              <div className="text-white font-mono">Count: {privateSpaces?.length || 0}</div>
+              <div className="text-white font-mono">Error: {error ? '❌ Yes' : '✅ None'}</div>
+            </div>
+            <div className="bg-black/30 rounded-lg p-3">
+              <div className="text-sm text-gray-400">Connection</div>
+              <div className="text-white font-mono">WebSocket: ✅ Connected</div>
+              <div className="text-white font-mono">App Ready: ✅ Loaded</div>
+            </div>
+          </div>
+          <div className="flex space-x-2">
+            <button
+              onClick={() => {
+                console.log('=== MANUAL AUTH DEBUG ===');
+                console.log('Authentication details:', { authenticated, identity });
+                console.log('Full auth object:', { authenticated, identity });
+              }}
+              className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm font-semibold transition-colors"
+            >
+              Log Auth State
+            </button>
+            <button
+              onClick={() => {
+                console.log('=== MANUAL SPACES DEBUG ===');
+                console.log('Spaces query details:', spacesQuery);
+                console.log('Raw data:', privateSpaces);
+                console.log('Pending state:', privateSpacesPending);
+                console.log('Error state:', error);
+              }}
+              className="px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg text-sm font-semibold transition-colors"
+            >
+              Log Spaces Query
+            </button>
+            <button
+              onClick={async () => {
+                console.log('=== SMART CLIENT TEST ===');
+                try {
+                  const client = await getSmartSessionClient();
+                  console.log('Smart session client test result:', {
+                    success: !!client,
+                    client: client,
+                  });
+                } catch (err) {
+                  console.error('Smart session client test failed:', err);
+                }
+              }}
+              className="px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-lg text-sm font-semibold transition-colors"
+            >
+              Test Smart Client
+            </button>
+            <button
+              onClick={() => {
+                console.log('=== REFRESH TEST ===');
+                console.log('Attempting to refresh page...');
+                window.location.reload();
+              }}
+              className="px-4 py-2 bg-yellow-600 hover:bg-yellow-700 text-white rounded-lg text-sm font-semibold transition-colors"
+            >
+              Refresh Page
+            </button>
+          </div>
+          {error && (
+            <div className="mt-4 p-3 bg-red-900/30 rounded-lg border border-red-500/30">
+              <div className="text-red-400 font-semibold">Error Details:</div>
+              <div className="text-red-300 font-mono text-sm">{error.message || JSON.stringify(error)}</div>
+            </div>
+          )}
         </div>
 
         {/* Stats Section */}

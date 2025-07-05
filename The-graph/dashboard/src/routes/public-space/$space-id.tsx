@@ -1,4 +1,4 @@
-import { AcademicField } from '@/schema';
+import { WorldID, SelfID, VCProof, TokenHolding, TransferEvents } from '@/schema';
 import {
   HypergraphSpaceProvider,
   useQuery,
@@ -25,47 +25,87 @@ function RouteComponent() {
 
 function PublicSpace({ spaceId }: { spaceId: string }) {
   const { ready, name } = useSpace({ mode: 'public' });
-  const { data: academicFields, refetch: refetchAcademicFields } = useQuery(AcademicField, { mode: 'public' });
+
+  // Query all entity types
+  const { data: worldIDs, refetch: refetchWorldIDs } = useQuery(WorldID, { mode: 'public' });
+  const { data: selfIDs, refetch: refetchSelfIDs } = useQuery(SelfID, { mode: 'public' });
+  const { data: vcProofs, refetch: refetchVCProofs } = useQuery(VCProof, { mode: 'public' });
+  const { data: tokenHoldings, refetch: refetchTokenHoldings } = useQuery(TokenHolding, { mode: 'public' });
+  const { data: transferEvents, refetch: refetchTransferEvents } = useQuery(TransferEvents, { mode: 'public' });
+
   const { getSmartSessionClient } = useHypergraphApp();
+
+  // Combine all entities into a single array with type information
+  const allEntities = [
+    ...(worldIDs?.map((entity) => ({ ...entity, entityType: 'WorldID' })) || []),
+    ...(selfIDs?.map((entity) => ({ ...entity, entityType: 'SelfID' })) || []),
+    ...(vcProofs?.map((entity) => ({ ...entity, entityType: 'VCProof' })) || []),
+    ...(tokenHoldings?.map((entity) => ({ ...entity, entityType: 'TokenHolding' })) || []),
+    ...(transferEvents?.map((entity) => ({ ...entity, entityType: 'TransferEvents' })) || []),
+  ];
+
+  // Entity type configurations
+  const entityTypes = {
+    WorldID: {
+      icon: '🌍',
+      color: 'from-blue-500 to-cyan-500',
+    },
+    SelfID: {
+      icon: '👤',
+      color: 'from-green-500 to-emerald-500',
+    },
+    VCProof: {
+      icon: '🔐',
+      color: 'from-purple-500 to-violet-500',
+    },
+    TokenHolding: {
+      icon: '💰',
+      color: 'from-yellow-500 to-orange-500',
+    },
+    TransferEvents: {
+      icon: '🔄',
+      color: 'from-red-500 to-pink-500',
+    },
+  };
 
   // Debug space state
   console.log('=== PUBLIC SPACE STATE DEBUG ===');
   console.log('Space ID:', spaceId);
   console.log('Space ready:', ready);
   console.log('Space name:', name);
-  console.log('Academic fields:', academicFields);
+  console.log('All entities:', allEntities);
 
-  const handleUnsetEntity = async (academicField: AcademicField) => {
+  const handleUnsetEntity = async (entity: any) => {
     console.log('=== PUBLIC SPACE UNSET DEBUG ===');
-    console.log('Attempting to unset public entity:', academicField);
-    console.log('Entity ID:', (academicField as any).id);
+    console.log('Attempting to unset public entity:', entity);
+    console.log('Entity ID:', (entity as any).id);
     console.log('Space ID:', spaceId);
     console.log('Space ready:', ready);
-    console.log('Full entity object:', JSON.stringify(academicField, null, 2));
+    console.log('Full entity object:', JSON.stringify(entity, null, 2));
 
     if (
       confirm(
-        `Are you sure you want to unset "${academicField.name}"? This will remove the entity from the public space but preserve it in the blockchain.`,
+        `Are you sure you want to unset this ${entity.entityType}? This will remove the entity from the public space but preserve it in the blockchain.`,
       )
     ) {
       try {
         console.log('User confirmed unset, preparing operations...');
 
-        // Get all property IDs for the AcademicField entity
-        const academicFieldMapping = mapping.AcademicField;
-        if (!academicFieldMapping?.properties) {
-          throw new Error('AcademicField mapping properties not found');
+        // Get all property IDs for the entity type from mapping
+        const entityMapping = mapping[entity.entityType as keyof typeof mapping];
+        if (!entityMapping?.properties) {
+          throw new Error(`${entity.entityType} mapping properties not found`);
         }
 
-        const propertyIds = Object.values(academicFieldMapping.properties);
+        const propertyIds = Object.values(entityMapping.properties);
         console.log('Property IDs to unset:', propertyIds);
 
-        // Create unset operations manually since unsetEntityValues is not available
+        // Create unset operations
         const ops = [
           {
             type: 'UNSET_ENTITY_VALUES' as const,
             unsetEntityValues: {
-              id: (academicField as any).id,
+              id: (entity as any).id,
               properties: propertyIds,
             },
           },
@@ -85,7 +125,7 @@ function PublicSpace({ spaceId }: { spaceId: string }) {
         const result = await publishOps({
           ops,
           space: spaceId,
-          name: 'Unset AcademicField',
+          name: `Unset ${entity.entityType}`,
           walletClient: smartSessionClient,
         });
 
@@ -93,8 +133,8 @@ function PublicSpace({ spaceId }: { spaceId: string }) {
 
         // Refresh the data after unset
         setTimeout(() => {
-          console.log('Refreshing academic fields after unset...');
-          refetchAcademicFields();
+          console.log('Refreshing entities after unset...');
+          refetchAllEntities();
         }, 1000);
       } catch (error) {
         console.error('Error unsetting entity:', error);
@@ -110,9 +150,47 @@ function PublicSpace({ spaceId }: { spaceId: string }) {
     }
   };
 
-  const handleRefreshData = () => {
-    console.log('Manually refreshing academic fields...');
-    refetchAcademicFields();
+  const refetchAllEntities = () => {
+    console.log('Manually refreshing all entities...');
+    refetchWorldIDs();
+    refetchSelfIDs();
+    refetchVCProofs();
+    refetchTokenHoldings();
+    refetchTransferEvents();
+  };
+
+  const getEntityDisplayName = (entity: any) => {
+    switch (entity.entityType) {
+      case 'WorldID':
+        return entity.address?.slice(0, 8) + '...' || 'WorldID';
+      case 'SelfID':
+        return entity.did?.slice(0, 8) + '...' || 'SelfID';
+      case 'VCProof':
+        return entity.type || 'VCProof';
+      case 'TokenHolding':
+        return `${entity.amount} ${entity.token}` || 'TokenHolding';
+      case 'TransferEvents':
+        return `${entity.amount} ${entity.token}` || 'Transfer';
+      default:
+        return 'Entity';
+    }
+  };
+
+  const getEntityDescription = (entity: any) => {
+    switch (entity.entityType) {
+      case 'WorldID':
+        return `World ID verification for address ${entity.address}`;
+      case 'SelfID':
+        return `Self-sovereign identity: ${entity.did}`;
+      case 'VCProof':
+        return `Verifiable credential proof of type: ${entity.type}`;
+      case 'TokenHolding':
+        return `Holding ${entity.amount} ${entity.token} on ${entity.network}`;
+      case 'TransferEvents':
+        return `Transfer of ${entity.amount} ${entity.token} from ${entity.from?.slice(0, 8)}... to ${entity.to?.slice(0, 8)}...`;
+      default:
+        return 'Explore this entity and discover insights from the community.';
+    }
   };
 
   if (!ready) {
@@ -146,7 +224,7 @@ function PublicSpace({ spaceId }: { spaceId: string }) {
             </div>
             <div className="flex items-center space-x-4">
               <div className="bg-white/10 backdrop-blur-sm rounded-lg px-4 py-2 border border-blue-500/20">
-                <span className="text-blue-400 font-semibold">{academicFields?.length || 0}</span>
+                <span className="text-blue-400 font-semibold">{allEntities.length}</span>
                 <span className="text-gray-400 ml-2">Entities</span>
               </div>
               <div className="bg-white/10 backdrop-blur-sm rounded-lg px-4 py-2 border border-green-500/20">
@@ -154,7 +232,7 @@ function PublicSpace({ spaceId }: { spaceId: string }) {
                 <span className="text-gray-400 ml-2">Live</span>
               </div>
               <button
-                onClick={handleRefreshData}
+                onClick={refetchAllEntities}
                 className="bg-yellow-600 hover:bg-yellow-700 text-white px-4 py-2 rounded-lg font-semibold transition-colors flex items-center space-x-2"
               >
                 <span>🔄</span>
@@ -178,17 +256,16 @@ function PublicSpace({ spaceId }: { spaceId: string }) {
         {/* Entities Grid */}
         <div className="bg-white/5 backdrop-blur-sm rounded-xl p-8 border border-white/10">
           <div className="flex items-center justify-between mb-8">
-            <h2 className="text-2xl font-bold text-white">Academic Fields</h2>
-            <div className="text-gray-400 text-sm">{academicFields?.length || 0} entities available</div>
+            <h2 className="text-2xl font-bold text-white">All Entities</h2>
+            <div className="text-gray-400 text-sm">{allEntities.length} entities available</div>
           </div>
 
-          {!academicFields || academicFields.length === 0 ? (
+          {allEntities.length === 0 ? (
             <div className="text-center py-16">
-              <div className="text-gray-400 text-6xl mb-6">📚</div>
+              <div className="text-gray-400 text-6xl mb-6">📊</div>
               <h3 className="text-2xl font-semibold text-gray-300 mb-4">No Entities Available</h3>
               <p className="text-gray-400 mb-8 max-w-md mx-auto">
-                This public space doesn't have any academic field entities yet. Check back later or explore other
-                spaces.
+                This public space doesn't have any entities yet. Check back later or explore other spaces.
               </p>
               <Link
                 to="/"
@@ -199,67 +276,69 @@ function PublicSpace({ spaceId }: { spaceId: string }) {
             </div>
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {academicFields.map((academicField, index) => (
-                <div
-                  key={index}
-                  className="bg-white/5 rounded-xl p-6 border border-white/10 hover:bg-white/10 transition-all duration-200 group"
-                >
-                  <div className="flex items-start justify-between mb-4">
-                    <div className="flex items-center">
-                      <div className="w-10 h-10 bg-gradient-to-r from-green-500 to-blue-500 rounded-lg flex items-center justify-center mr-3">
-                        <span className="text-white font-bold">{academicField.name.charAt(0).toUpperCase()}</span>
+              {allEntities.map((entity, index) => {
+                const config = entityTypes[entity.entityType as keyof typeof entityTypes];
+                return (
+                  <div
+                    key={index}
+                    className="bg-white/5 rounded-xl p-6 border border-white/10 hover:bg-white/10 transition-all duration-200 group"
+                  >
+                    <div className="flex items-start justify-between mb-4">
+                      <div className="flex items-center">
+                        <div
+                          className={`w-10 h-10 bg-gradient-to-r ${config.color} rounded-lg flex items-center justify-center mr-3`}
+                        >
+                          <span className="text-white text-lg">{config.icon}</span>
+                        </div>
+                        <div>
+                          <h3 className="text-lg font-semibold text-white group-hover:text-blue-400 transition-colors">
+                            {getEntityDisplayName(entity)}
+                          </h3>
+                          <p className="text-gray-400 text-sm">{entity.entityType}</p>
+                        </div>
                       </div>
-                      <div>
-                        <h3 className="text-lg font-semibold text-white group-hover:text-blue-400 transition-colors">
-                          {academicField.name}
-                        </h3>
-                        <p className="text-gray-400 text-sm">Academic Field</p>
+                      <div className="text-green-400 text-sm">Public</div>
+                    </div>
+
+                    <div className="space-y-3 mb-4">
+                      <div className="flex items-center text-gray-400 text-sm">
+                        <span className="w-2 h-2 bg-green-400 rounded-full mr-2"></span>
+                        Community Verified
+                      </div>
+                      <div className="flex items-center text-gray-400 text-sm">
+                        <span className="w-2 h-2 bg-blue-400 rounded-full mr-2"></span>
+                        Open Access
+                      </div>
+                      <div className="flex items-center text-gray-400 text-sm">
+                        <span className="w-2 h-2 bg-purple-400 rounded-full mr-2"></span>
+                        Always Available
                       </div>
                     </div>
-                    <div className="text-green-400 text-sm">Public</div>
-                  </div>
 
-                  <div className="space-y-3 mb-4">
-                    <div className="flex items-center text-gray-400 text-sm">
-                      <span className="w-2 h-2 bg-green-400 rounded-full mr-2"></span>
-                      Community Verified
+                    {/* Description */}
+                    <div className="mb-4 p-3 bg-white/5 rounded-lg border border-white/10">
+                      <p className="text-gray-300 text-sm">{getEntityDescription(entity)}</p>
                     </div>
-                    <div className="flex items-center text-gray-400 text-sm">
-                      <span className="w-2 h-2 bg-blue-400 rounded-full mr-2"></span>
-                      Open Access
-                    </div>
-                    <div className="flex items-center text-gray-400 text-sm">
-                      <span className="w-2 h-2 bg-purple-400 rounded-full mr-2"></span>
-                      Always Available
-                    </div>
-                  </div>
 
-                  {/* Description */}
-                  <div className="mb-4 p-3 bg-white/5 rounded-lg border border-white/10">
-                    <p className="text-gray-300 text-sm">
-                      {academicField.description ||
-                        'Explore this academic field and discover insights from the community.'}
-                    </p>
-                  </div>
-
-                  {/* Actions */}
-                  <div className="flex justify-between items-center pt-4 border-t border-white/10">
-                    <div className="text-gray-500 text-sm">Entity #{index + 1}</div>
-                    <div className="flex space-x-2">
-                      <button className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm font-semibold transition-colors">
-                        Explore
-                      </button>
-                      <button
-                        onClick={() => handleUnsetEntity(academicField)}
-                        className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg text-sm font-semibold transition-colors flex items-center space-x-1"
-                      >
-                        <span>🗑️</span>
-                        <span>Unset</span>
-                      </button>
+                    {/* Actions */}
+                    <div className="flex justify-between items-center pt-4 border-t border-white/10">
+                      <div className="text-gray-500 text-sm">Entity #{index + 1}</div>
+                      <div className="flex space-x-2">
+                        <button className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm font-semibold transition-colors">
+                          Explore
+                        </button>
+                        <button
+                          onClick={() => handleUnsetEntity(entity)}
+                          className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg text-sm font-semibold transition-colors flex items-center space-x-1"
+                        >
+                          <span>🗑️</span>
+                          <span>Unset</span>
+                        </button>
+                      </div>
                     </div>
                   </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           )}
         </div>
@@ -289,13 +368,14 @@ function PublicSpace({ spaceId }: { spaceId: string }) {
           </div>
 
           <div className="bg-white/5 backdrop-blur-sm rounded-xl p-6 border border-purple-500/20">
-            <h3 className="text-xl font-semibold text-white mb-4">🔗 Interconnected</h3>
-            <p className="text-gray-300 text-sm mb-4">
-              Entities in public spaces can be referenced and built upon by other community members.
-            </p>
-            <div className="flex items-center text-purple-400 text-sm">
-              <span className="w-2 h-2 bg-purple-400 rounded-full mr-2"></span>
-              Collaborative Network
+            <h3 className="text-xl font-semibold text-white mb-4">📊 Entity Types</h3>
+            <div className="space-y-2">
+              {Object.entries(entityTypes).map(([type, config]) => (
+                <div key={type} className="flex items-center text-gray-300">
+                  <span className="text-lg mr-2">{config.icon}</span>
+                  <span>{type}</span>
+                </div>
+              ))}
             </div>
           </div>
         </div>
