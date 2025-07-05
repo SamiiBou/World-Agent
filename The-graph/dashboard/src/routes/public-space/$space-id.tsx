@@ -41,6 +41,26 @@ function PublicSpace({ spaceId }: { spaceId: string }) {
 
   const { getSmartSessionClient } = useHypergraphApp();
 
+  // Define getEntityDisplayName function here, before it's used in sorting
+  const getEntityDisplayName = (entity: any) => {
+    switch (entity.entityType) {
+      case 'Account':
+        return entity.name || 'Account';
+      case 'WorldID':
+        return entity.address?.slice(0, 8) + '...' || 'WorldID';
+      case 'SelfID':
+        return entity.did?.slice(0, 8) + '...' || 'SelfID';
+      case 'VCProof':
+        return entity.type || 'VCProof';
+      case 'TokenHolding':
+        return `${entity.amount} ${entity.token}` || 'TokenHolding';
+      case 'TransferEvents':
+        return `${entity.amount} ${entity.token}` || 'Transfer';
+      default:
+        return 'Entity';
+    }
+  };
+
   // Combine all entities into a single array with type information
   const allEntities = [
     ...(accounts?.map((entity) => ({ ...entity, entityType: 'Account' })) || []),
@@ -163,25 +183,6 @@ function PublicSpace({ spaceId }: { spaceId: string }) {
     refetchTransferEvents();
   };
 
-  const getEntityDisplayName = (entity: any) => {
-    switch (entity.entityType) {
-      case 'Account':
-        return entity.name || 'Account';
-      case 'WorldID':
-        return entity.address?.slice(0, 8) + '...' || 'WorldID';
-      case 'SelfID':
-        return entity.did?.slice(0, 8) + '...' || 'SelfID';
-      case 'VCProof':
-        return entity.type || 'VCProof';
-      case 'TokenHolding':
-        return `${entity.amount} ${entity.token}` || 'TokenHolding';
-      case 'TransferEvents':
-        return `${entity.amount} ${entity.token}` || 'Transfer';
-      default:
-        return 'Entity';
-    }
-  };
-
   const getEntityDescription = (entity: any) => {
     switch (entity.entityType) {
       case 'Account':
@@ -291,29 +292,31 @@ function PublicSpace({ spaceId }: { spaceId: string }) {
             </div>
           </div>
 
-          <div className="bg-red-900/20 border border-red-500/30 rounded-lg p-4 mb-4">
-            <h4 className="text-red-300 font-semibold text-sm mb-2">🚨 Entity Count by Type</h4>
-            <div className="text-red-200 text-xs space-y-1">
-              <p>• Account: {accounts?.length || 0} entities</p>
-              <p>• WorldID: {worldIDs?.length || 0} entities</p>
-              <p>• SelfID: {selfIDs?.length || 0} entities</p>
-              <p>• VCProof: {vcProofs?.length || 0} entities</p>
-              <p>• TokenHolding: {tokenHoldings?.length || 0} entities</p>
-              <p>• TransferEvents: {transferEvents?.length || 0} entities</p>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+            <div className="bg-red-900/20 border border-red-500/30 rounded-lg p-4 mb-4">
+              <h4 className="text-red-300 font-semibold text-sm mb-2">🚨 Entity Count by Type</h4>
+              <div className="text-red-200 text-xs space-y-1">
+                <p>• Account: {accounts?.length || 0} entities</p>
+                <p>• WorldID: {worldIDs?.length || 0} entities</p>
+                <p>• SelfID: {selfIDs?.length || 0} entities</p>
+                <p>• VCProof: {vcProofs?.length || 0} entities</p>
+                <p>• TokenHolding: {tokenHoldings?.length || 0} entities</p>
+                <p>• TransferEvents: {transferEvents?.length || 0} entities</p>
+              </div>
             </div>
-          </div>
 
-          <div className="bg-orange-900/20 border border-orange-500/30 rounded-lg p-4 mb-4">
-            <h4 className="text-orange-300 font-semibold text-sm mb-2">⚠️ If Your Data Isn't Showing</h4>
-            <div className="text-orange-200 text-xs space-y-1">
-              <p>• Data might still be indexing (wait 1-2 minutes)</p>
-              <p>• Schema changes might have created version conflicts</p>
-              <p>• Old data might not match new Account schema</p>
-              <p>• Check browser console for schema mismatch warnings</p>
-              <p>• Try republishing from private space with new schema</p>
-              <p>
-                • <strong>Verify you're in the correct public space!</strong>
-              </p>
+            <div className="bg-orange-900/20 border border-orange-500/30 rounded-lg p-4 mb-4">
+              <h4 className="text-orange-300 font-semibold text-sm mb-2">⚠️ If Your Data Isn't Showing</h4>
+              <div className="text-orange-200 text-xs space-y-1">
+                <p>• Data might still be indexing (wait 1-2 minutes)</p>
+                <p>• Schema changes might have created version conflicts</p>
+                <p>• Old data might not match new Account schema</p>
+                <p>• Check browser console for schema mismatch warnings</p>
+                <p>• Try republishing from private space with new schema</p>
+                <p>
+                  • <strong>Verify you're in the correct public space!</strong>
+                </p>
+              </div>
             </div>
           </div>
 
