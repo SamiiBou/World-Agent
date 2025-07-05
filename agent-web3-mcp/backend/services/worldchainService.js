@@ -45,6 +45,18 @@ class WorldChainService {
     }
   }
 
+  // NEW: Check if the provider can reach World Chain RPC
+  async isConnected() {
+    try {
+      // A cheap call to verify the connection: fetch the latest block number
+      await this.provider.getBlockNumber();
+      return true;
+    } catch (error) {
+      console.error('World Chain connection error:', error);
+      return false;
+    }
+  }
+
   // Simulate a transfer (for security, we don't do real transfers)
   async simulateTransfer(from, to, amount) {
     try {
