@@ -12,6 +12,7 @@ export default function SelfVerificationQR() {
   const [verificationStatus, setVerificationStatus] = useState<'pending' | 'success' | 'error'>('pending');
   const [verificationData, setVerificationData] = useState<any>(null);
   const [walletAddress, setWalletAddress] = useState<string>('');
+  const [isPolling, setIsPolling] = useState<boolean>(false);
 
   useEffect(() => {
     // Generate a user ID when the component mounts
@@ -27,6 +28,43 @@ export default function SelfVerificationQR() {
       console.warn('⚠️ No wallet address found in auth state for Self verification');
     }
   }, []);
+
+  // Start polling for verification completion
+  const startPolling = () => {
+    console.log('🔄 Starting verification polling...');
+    setIsPolling(true);
+    
+    const pollInterval = setInterval(async () => {
+      console.log('🔍 Checking for verification completion...');
+      const found = await fetchVerificationResult(true);
+      
+      if (found) {
+        console.log('✅ Verification found! Stopping polling.');
+        clearInterval(pollInterval);
+      }
+    }, 3000); // Check every 3 seconds
+    
+    // Stop polling after 5 minutes to prevent infinite polling
+    setTimeout(() => {
+      if (isPolling) {
+        console.log('⏰ Polling timeout reached, stopping...');
+        clearInterval(pollInterval);
+        setIsPolling(false);
+      }
+    }, 5 * 60 * 1000); // 5 minutes
+  };
+
+  // Auto-start polling when component mounts (if wallet is connected)
+  useEffect(() => {
+    if (walletAddress && !isPolling && verificationStatus === 'pending') {
+      // Start polling after a short delay to allow user to click the deeplink
+      const timer = setTimeout(() => {
+        startPolling();
+      }, 2000);
+      
+      return () => clearTimeout(timer);
+    }
+  }, [walletAddress, isPolling, verificationStatus]);
 
   if (!userId) return <div>Loading Self ID...</div>;
 
@@ -153,13 +191,17 @@ export default function SelfVerificationQR() {
     fetchVerificationResult();
   };
 
-  const fetchVerificationResult = async () => {
+  const fetchVerificationResult = async (isPollingCheck = false) => {
     try {
       // Fetch the latest verification result from backend (no userId filter, backend picks latest)
       const backendUrl = config.backend.baseUrl;
       const response = await fetch(`${backendUrl}/api/self/latest-verification`);
       
       if (!response.ok) {
+        if (isPollingCheck) {
+          // Don't throw error during polling, just return false
+          return false;
+        }
         throw new Error(`Failed to fetch verification: ${response.status}`);
       }
       
@@ -181,17 +223,29 @@ export default function SelfVerificationQR() {
         VerificationStorage.storeVerification(verificationInfo);
         setVerificationStatus('success');
         setVerificationData(verificationInfo);
+        setIsPolling(false); // Stop polling on success
         
         console.log('✅ Verification data fetched and stored:', {
           uniqueId,
           timestamp: data.verification.timestamp,
           walletAddress: walletAddress
         });
+        
+        return true;
       } else {
+        if (isPollingCheck) {
+          // No verification found yet during polling
+          return false;
+        }
         throw new Error('Invalid verification response');
       }
     } catch (error) {
       console.error('Failed to fetch verification result:', error);
+      
+      if (isPollingCheck) {
+        // Don't set fallback during polling
+        return false;
+      }
       
       // Fallback: create basic verification info even if fetch fails
       const fallbackInfo = {
@@ -206,14 +260,17 @@ export default function SelfVerificationQR() {
       VerificationStorage.storeVerification(fallbackInfo);
       setVerificationStatus('success');
       setVerificationData(fallbackInfo);
+      setIsPolling(false);
       
       console.log('⚠️ Using fallback verification data due to fetch error');
+      return true;
     }
   };
 
   const handleError = (data: { error_code?: string; reason?: string }) => {
     console.error("❌ Verification failed:", data);
     setVerificationStatus('error');
+    setIsPolling(false);
   };
 
   // Show warning if no wallet address
@@ -242,9 +299,48 @@ export default function SelfVerificationQR() {
 
   return (
     <div className="self-deeplink-container">
-      <a href={deeplink} className="self-deeplink-btn" target="_blank" rel="noopener noreferrer">
-        🔗 Open Self App to Verify
-      </a>
+      <div className="verification-steps">
+        <h3>🔐 Self ID Verification</h3>
+        <p>Complete your identity verification using Self ID</p>
+        
+        <div className="step-container">
+          <div className="step">
+            <span className="step-number">1</span>
+            <span className="step-text">Click the button below to open Self app</span>
+          </div>
+          <div className="step">
+            <span className="step-number">2</span>
+            <span className="step-text">Complete verification in Self app</span>
+          </div>
+          <div className="step">
+            <span className="step-number">3</span>
+            <span className="step-text">Return here - we'll detect completion automatically</span>
+          </div>
+        </div>
+
+        <a href={deeplink} className="self-deeplink-btn" target="_blank" rel="noopener noreferrer">
+          🔗 Open Self App to Verify
+        </a>
+
+        {isPolling && (
+          <div className="polling-status">
+            <div className="polling-spinner">⏳</div>
+            <p>Waiting for verification completion...</p>
+            <small>Complete the verification in Self app and we'll automatically detect it</small>
+          </div>
+        )}
+
+        <div className="manual-check">
+          <p>Already completed verification?</p>
+          <button 
+            onClick={() => fetchVerificationResult(false)}
+            className="check-status-btn"
+            disabled={isPolling}
+          >
+            🔄 Check Status Manually
+          </button>
+        </div>
+      </div>
     </div>
   );
 }

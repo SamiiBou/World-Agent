@@ -240,7 +240,7 @@ How can I help you today?`,
 
       {/* Chat Section - only shown when agent is selected */}
       {selectedAgent && (
-        <>
+        <div className="chat-section">
           <div className="chat-header">
             <div className="agent-profile">
               <div className="agent-avatar">{selectedAgent.avatar}</div>
@@ -320,7 +320,7 @@ How can I help you today?`,
               </button>
             </div>
           </form>
-        </>
+        </div>
       )}
 
       {/* No agent selected message */}
