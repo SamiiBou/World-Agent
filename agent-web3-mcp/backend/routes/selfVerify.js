@@ -7,6 +7,7 @@
      InMemoryConfigStore
    } = require('@selfxyz/core');
    const { generateUserContextData } = require('../utils/generateUserContextData');
+   const SelfId = require('../models/SelfId');
 
    // Simple in-memory store for recent verifications (in production, use Redis or database)
    const recentVerifications = new Map();
@@ -133,6 +134,26 @@
        const result = await verifier.verify(attestationId, proof, pubSignals, userContextData);
        
        console.log('✅ Verification successful!', result);
+       
+       // Persist verification to MongoDB SelfId collection
+       const uniqueHash = result.discloseOutput?.nullifier?.toString();
+       try {
+         await SelfId.findOneAndUpdate(
+           { uniqueHash },
+           {
+             uniqueHash,
+             proof,
+             pubSignals,
+             isValidDetails: result.isValidDetails,
+             forbiddenCountriesList: result.forbiddenCountriesList,
+             discloseOutput: result.discloseOutput,
+             verifiedAt: new Date()
+           },
+           { upsert: true, setDefaultsOnInsert: true }
+         );
+       } catch (dbErr) {
+         console.error('Error saving SelfId verification:', dbErr);
+       }
        
        // Store verification result for frontend retrieval
        const verificationId = `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;

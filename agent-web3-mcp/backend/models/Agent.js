@@ -45,7 +45,34 @@ const agentSchema = new mongoose.Schema({
       default: Date.now
     }
   },
-  
+
+  selfId: {
+    uniqueHash: {
+      type: String,
+      default: '',
+      index: true,
+      sparse: true
+    },
+    isValidDetails: {
+      isValid: {
+        type: Boolean,
+        default: false
+      },
+      isMinimumAgeValid: {
+        type: Boolean,
+        default: false
+      },
+      isOfacValid: {
+        type: Boolean,
+        default: false
+      }
+    },
+    forbiddenCountriesList: {
+      type: [String],
+      default: []
+    },
+  },
+
   // Statistiques
   stats: {
     totalTransactions: {
