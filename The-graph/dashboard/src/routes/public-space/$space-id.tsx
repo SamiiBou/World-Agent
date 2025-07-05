@@ -342,68 +342,6 @@ function PublicSpace({ spaceId }: { spaceId: string }) {
             </div>
           )}
         </div>
-
-        {/* Info Sections */}
-        <div className="mt-16 grid grid-cols-1 md:grid-cols-3 gap-8">
-          <div className="bg-white/5 backdrop-blur-sm rounded-xl p-6 border border-blue-500/20">
-            <h3 className="text-xl font-semibold text-white mb-4">🌍 Community Driven</h3>
-            <p className="text-gray-300 text-sm mb-4">
-              This public space is maintained by the community. All entities are openly accessible and verified.
-            </p>
-            <div className="flex items-center text-blue-400 text-sm">
-              <span className="w-2 h-2 bg-blue-400 rounded-full mr-2"></span>
-              Transparent & Open
-            </div>
-          </div>
-
-          <div className="bg-white/5 backdrop-blur-sm rounded-xl p-6 border border-green-500/20">
-            <h3 className="text-xl font-semibold text-white mb-4">⚡ Real-time Access</h3>
-            <p className="text-gray-300 text-sm mb-4">
-              Access entities instantly without any setup. All data is live and continuously updated.
-            </p>
-            <div className="flex items-center text-green-400 text-sm">
-              <span className="w-2 h-2 bg-green-400 rounded-full mr-2"></span>
-              Always Up-to-date
-            </div>
-          </div>
-
-          <div className="bg-white/5 backdrop-blur-sm rounded-xl p-6 border border-purple-500/20">
-            <h3 className="text-xl font-semibold text-white mb-4">📊 Entity Types</h3>
-            <div className="space-y-2">
-              {Object.entries(entityTypes).map(([type, config]) => (
-                <div key={type} className="flex items-center text-gray-300">
-                  <span className="text-lg mr-2">{config.icon}</span>
-                  <span>{type}</span>
-                </div>
-              ))}
-            </div>
-          </div>
-        </div>
-
-        {/* Call to Action */}
-        <div className="mt-16 text-center">
-          <div className="bg-gradient-to-r from-blue-600/20 to-purple-600/20 rounded-xl p-8 border border-blue-500/30">
-            <h3 className="text-2xl font-bold text-white mb-4">Want to Contribute?</h3>
-            <p className="text-gray-300 mb-6 max-w-2xl mx-auto">
-              Join the community by creating your own private space and publishing entities to public spaces. Help build
-              the decentralized knowledge network.
-            </p>
-            <div className="flex justify-center gap-4">
-              <Link
-                to="/private-spaces"
-                className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white px-8 py-3 rounded-lg font-semibold transition-all duration-200 transform hover:scale-105"
-              >
-                Create Private Space
-              </Link>
-              <Link
-                to="/"
-                className="border border-blue-600 hover:border-blue-500 text-blue-300 px-8 py-3 rounded-lg font-semibold transition-colors"
-              >
-                Explore More Spaces
-              </Link>
-            </div>
-          </div>
-        </div>
       </div>
     </div>
   );

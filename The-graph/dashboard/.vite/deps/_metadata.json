@@ -1,0 +1,103 @@
+{
+  "hash": "bf561f1b",
+  "configHash": "2d26bbef",
+  "lockfileHash": "bc419fab",
+  "browserHash": "c329ce7a",
+  "optimized": {
+    "react/jsx-dev-runtime": {
+      "src": "../../node_modules/react/jsx-dev-runtime.js",
+      "file": "react_jsx-dev-runtime.js",
+      "fileHash": "341819e7",
+      "needsInterop": true
+    },
+    "@graphprotocol/hypergraph-react": {
+      "src": "../../node_modules/@graphprotocol/hypergraph-react/dist/index.js",
+      "file": "@graphprotocol_hypergraph-react.js",
+      "fileHash": "ac080795",
+      "needsInterop": false
+    },
+    "@tanstack/react-router": {
+      "src": "../../node_modules/@tanstack/react-router/dist/esm/index.js",
+      "file": "@tanstack_react-router.js",
+      "fileHash": "ee71a55b",
+      "needsInterop": false
+    },
+    "react-dom/client": {
+      "src": "../../node_modules/react-dom/client.js",
+      "file": "react-dom_client.js",
+      "fileHash": "ff0b1557",
+      "needsInterop": true
+    },
+    "@graphprotocol/grc-20": {
+      "src": "../../node_modules/@graphprotocol/grc-20/dist/index.js",
+      "file": "@graphprotocol_grc-20.js",
+      "fileHash": "796404bd",
+      "needsInterop": false
+    },
+    "@tanstack/react-router-devtools": {
+      "src": "../../node_modules/@tanstack/react-router-devtools/dist/esm/index.js",
+      "file": "@tanstack_react-router-devtools.js",
+      "fileHash": "82775219",
+      "needsInterop": false
+    },
+    "react": {
+      "src": "../../node_modules/react/index.js",
+      "file": "react.js",
+      "fileHash": "eea1694d",
+      "needsInterop": true
+    }
+  },
+  "chunks": {
+    "ccip-PEPOASSU": {
+      "file": "ccip-PEPOASSU.js"
+    },
+    "native-6N7THT5P": {
+      "file": "native-6N7THT5P.js"
+    },
+    "BaseTanStackRouterDevtoolsPanel-AULSAGEB": {
+      "file": "BaseTanStackRouterDevtoolsPanel-AULSAGEB.js"
+    },
+    "FloatingTanStackRouterDevtools-EANDIA5M": {
+      "file": "FloatingTanStackRouterDevtools-EANDIA5M.js"
+    },
+    "chunk-B6PEWZDB": {
+      "file": "chunk-B6PEWZDB.js"
+    },
+    "chunk-CCRHR5FT": {
+      "file": "chunk-CCRHR5FT.js"
+    },
+    "chunk-U34KSMZB": {
+      "file": "chunk-U34KSMZB.js"
+    },
+    "chunk-TGF67CJS": {
+      "file": "chunk-TGF67CJS.js"
+    },
+    "chunk-7SA226QB": {
+      "file": "chunk-7SA226QB.js"
+    },
+    "chunk-FV2ERPJC": {
+      "file": "chunk-FV2ERPJC.js"
+    },
+    "chunk-NX324PME": {
+      "file": "chunk-NX324PME.js"
+    },
+    "chunk-ECWOLUX3": {
+      "file": "chunk-ECWOLUX3.js"
+    },
+    "chunk-Z4L4S4OG": {
+      "file": "chunk-Z4L4S4OG.js"
+    },
+    "secp256k1-QLZDF4TE": {
+      "file": "secp256k1-QLZDF4TE.js"
+    },
+    "chunk-3REMI6TK": {
+      "file": "chunk-3REMI6TK.js"
+    },
+    "chunk-5NAQZVLA": {
+      "file": "chunk-5NAQZVLA.js"
+    },
+    "chunk-WOOG5QLI": {
+      "file": "chunk-WOOG5QLI.js"
+    }
+  }
+}

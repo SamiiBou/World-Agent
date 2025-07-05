@@ -55,6 +55,11 @@ function PrivateSpace({ spaceId }: { spaceId: string }) {
     TransferEvents: { from: '', to: '', token: '', amount: '', timestamp: '' },
   });
 
+  // Add JSON parser state
+  const [jsonInput, setJsonInput] = useState('');
+  const [parseError, setParseError] = useState('');
+  const [parseSuccess, setParseSuccess] = useState('');
+
   // Create entity hooks for all types
   const createWorldID = useCreateEntity(WorldID);
   const createSelfID = useCreateEntity(SelfID);
@@ -336,6 +341,119 @@ function PrivateSpace({ spaceId }: { spaceId: string }) {
     }));
   };
 
+  // Add JSON parser function
+  const parseJsonData = () => {
+    setParseError('');
+    setParseSuccess('');
+
+    if (!jsonInput.trim()) {
+      setParseError('Please enter JSON data to parse');
+      return;
+    }
+
+    try {
+      const parsed = JSON.parse(jsonInput.trim());
+      console.log('Parsed JSON:', parsed);
+
+      // Handle array of entities or single entity
+      const entities = Array.isArray(parsed) ? parsed : [parsed];
+      let parsedCount = 0;
+
+      // Create a copy of current entity data
+      const newEntityData = { ...entityData };
+
+      entities.forEach((entity) => {
+        // Try to determine entity type and map fields
+        if (entity.entityType && entityTypes[entity.entityType as keyof typeof entityTypes]) {
+          // Direct mapping with entityType specified
+          const entityType = entity.entityType as keyof typeof entityData;
+          const config = entityTypes[entityType];
+
+          const mappedData: Record<string, string> = {};
+          config.fields.forEach((field) => {
+            if (entity[field.name] !== undefined) {
+              mappedData[field.name] = String(entity[field.name]);
+            }
+          });
+
+          if (Object.keys(mappedData).length > 0) {
+            newEntityData[entityType] = { ...newEntityData[entityType], ...mappedData } as any;
+            parsedCount++;
+          }
+        } else {
+          // Smart mapping based on field names
+          Object.entries(entityTypes).forEach(([entityType, config]) => {
+            const typeKey = entityType as keyof typeof entityData;
+            const mappedData: Record<string, string> = {};
+            let matchedFields = 0;
+
+            config.fields.forEach((field) => {
+              if (entity[field.name] !== undefined) {
+                mappedData[field.name] = String(entity[field.name]);
+                matchedFields++;
+              }
+            });
+
+            // If we matched at least half the fields, consider it a match for this entity type
+            if (matchedFields >= Math.ceil(config.fields.length / 2)) {
+              newEntityData[typeKey] = { ...newEntityData[typeKey], ...mappedData } as any;
+              parsedCount++;
+            }
+          });
+        }
+      });
+
+      if (parsedCount > 0) {
+        setEntityData(newEntityData);
+        setParseSuccess(`Successfully parsed and populated ${parsedCount} entity type(s)!`);
+        setJsonInput(''); // Clear the input after successful parse
+      } else {
+        setParseError('No matching entity fields found in the JSON data');
+      }
+    } catch (error) {
+      setParseError(`Invalid JSON format: ${(error as Error).message}`);
+    }
+  };
+
+  // Add sample data generator
+  const generateSampleData = () => {
+    const sampleData = [
+      {
+        entityType: 'WorldID',
+        address: '0x1234567890abcdef1234567890abcdef12345678',
+        timestamp: '1703097600',
+        type: 'human',
+      },
+      {
+        entityType: 'SelfID',
+        address: '0x1234567890abcdef1234567890abcdef12345678',
+        did: 'did:example:self123',
+      },
+      {
+        entityType: 'TokenHolding',
+        address: '0x1234567890abcdef1234567890abcdef12345678',
+        token: 'ETH',
+        amount: '1.5',
+        network: 'ethereum',
+      },
+      {
+        entityType: 'VCProof',
+        proofHash: '0xabcdef1234567890abcdef1234567890abcdef12',
+        issuer: 'did:example:issuer123',
+        type: 'ProofOfResidence',
+      },
+      {
+        entityType: 'TransferEvents',
+        from: '0x1234567890abcdef1234567890abcdef12345678',
+        to: '0xabcdef1234567890abcdef123456890abcdef123',
+        token: 'ETH',
+        amount: '1.5',
+        timestamp: '1703097600',
+      },
+    ];
+    setJsonInput(JSON.stringify(sampleData, null, 2));
+  };
+
   const publishToPublicSpace = async (entity: any) => {
     if (!selectedSpace) {
       alert('No space selected');
@@ -433,72 +551,198 @@ function PrivateSpace({ spaceId }: { spaceId: string }) {
         {/* Add Entity Modal */}
         {isAddingEntity && (
           <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50">
-            <div className="bg-white/10 backdrop-blur-sm rounded-xl p-8 border border-white/20 max-w-4xl w-full mx-4 max-h-[80vh] overflow-y-auto">
+            <div className="bg-white/10 backdrop-blur-sm rounded-xl p-8 border border-white/20 max-w-7xl w-full mx-4 max-h-[90vh] overflow-y-auto">
               <h2 className="text-2xl font-bold text-white mb-6">Add New Entities</h2>
               <p className="text-gray-400 mb-8">
-                Fill in any combination of entity types below. Only completed forms will create entities.
+                Fill in any combination of entity types below or use the JSON parser to auto-populate forms.
               </p>
 
-              <form onSubmit={handleSubmit}>
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-                  {Object.entries(entityTypes).map(([entityType, config]) => {
-                    const typeKey = entityType as keyof typeof entityData;
-                    return (
-                      <div key={entityType} className="bg-white/5 rounded-lg p-6 border border-white/10">
-                        <div className="flex items-center mb-4">
-                          <div
-                            className={`w-10 h-10 bg-gradient-to-r ${config.color} rounded-lg flex items-center justify-center mr-3`}
-                          >
-                            <span className="text-white text-lg">{config.icon}</span>
-                          </div>
-                          <div>
-                            <h3 className="text-lg font-semibold text-white">{config.title}</h3>
-                            <p className="text-gray-400 text-sm">{config.description}</p>
+              <div className="grid grid-cols-1 xl:grid-cols-3 gap-8">
+                {/* JSON Parser Section */}
+                <div className="xl:col-span-1">
+                  <div className="bg-white/5 rounded-lg p-6 border border-white/10 sticky top-0">
+                    <div className="flex items-center mb-4">
+                      <div className="w-10 h-10 bg-gradient-to-r from-indigo-500 to-purple-500 rounded-lg flex items-center justify-center mr-3">
+                        <span className="text-white text-lg">🔧</span>
+                      </div>
+                      <div>
+                        <h3 className="text-lg font-semibold text-white">JSON Parser</h3>
+                        <p className="text-gray-400 text-sm">Auto-fill forms from JSON data</p>
+                      </div>
+                    </div>
+
+                    <div className="space-y-4">
+                      <div>
+                        <label className="block text-gray-300 text-sm font-semibold mb-2">Paste JSON Data</label>
+                        <textarea
+                          value={jsonInput}
+                          onChange={(e) => {
+                            setJsonInput(e.target.value);
+                            setParseError('');
+                            setParseSuccess('');
+                          }}
+                          className="w-full h-48 px-4 py-3 bg-white/5 border border-white/20 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:border-purple-400 focus:ring-2 focus:ring-purple-400/20 font-mono text-sm resize-none"
+                          placeholder={`[
+  {
+    "entityType": "WorldID",
+    "address": "0x123...",
+    "timestamp": "1703097600",
+    "type": "human"
+  },
+  {
+    "entityType": "TokenHolding",
+    "address": "0x123...",
+    "token": "ETH",
+    "amount": "1.5",
+    "network": "ethereum"
+  }
+]`}
+                        />
+                      </div>
+
+                      {parseError && (
+                        <div className="bg-red-900/30 border border-red-500/50 rounded-lg p-3">
+                          <div className="flex items-center">
+                            <span className="text-red-400 text-lg mr-2">❌</span>
+                            <span className="text-red-300 text-sm">{parseError}</span>
                           </div>
                         </div>
+                      )}
 
-                        {config.fields.map((field) => (
-                          <div key={field.name} className="mb-4">
-                            <label className="block text-gray-300 text-sm font-semibold mb-2">{field.label}</label>
-                            <input
-                              type={field.type}
-                              value={(entityData[typeKey] as any)[field.name] || ''}
-                              onChange={(e) => updateEntityData(typeKey, field.name, e.target.value)}
-                              className="w-full px-4 py-3 bg-white/5 border border-white/20 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:border-purple-400 focus:ring-2 focus:ring-purple-400/20"
-                              placeholder={field.placeholder}
-                            />
+                      {parseSuccess && (
+                        <div className="bg-green-900/30 border border-green-500/50 rounded-lg p-3">
+                          <div className="flex items-center">
+                            <span className="text-green-400 text-lg mr-2">✅</span>
+                            <span className="text-green-300 text-sm">{parseSuccess}</span>
                           </div>
-                        ))}
+                        </div>
+                      )}
+
+                      <div className="space-y-2">
+                        <button
+                          type="button"
+                          onClick={parseJsonData}
+                          disabled={!jsonInput.trim()}
+                          className="w-full px-4 py-3 bg-indigo-600 hover:bg-indigo-700 disabled:bg-gray-600 disabled:cursor-not-allowed text-white rounded-lg font-semibold transition-colors"
+                        >
+                          Parse & Fill Forms
+                        </button>
+                        <button
+                          type="button"
+                          onClick={generateSampleData}
+                          className="w-full px-4 py-2 bg-gray-600 hover:bg-gray-700 text-white rounded-lg text-sm font-semibold transition-colors"
+                        >
+                          Load Sample Data
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setJsonInput('');
+                            setParseError('');
+                            setParseSuccess('');
+                          }}
+                          className="w-full px-4 py-2 bg-gray-700 hover:bg-gray-800 text-white rounded-lg text-sm font-semibold transition-colors"
+                        >
+                          Clear JSON
+                        </button>
                       </div>
-                    );
-                  })}
+
+                      <div className="bg-blue-900/20 border border-blue-500/30 rounded-lg p-3">
+                        <h4 className="text-blue-300 font-semibold text-sm mb-2">💡 Tips:</h4>
+                        <ul className="text-blue-200 text-xs space-y-1">
+                          <li>• Include "entityType" field for direct mapping</li>
+                          <li>• Use arrays for multiple entities</li>
+                          <li>• Field names must match exactly</li>
+                          <li>• Numbers can be strings or numbers</li>
+                        </ul>
+                      </div>
+                    </div>
+                  </div>
                 </div>
 
-                <div className="flex justify-end space-x-4 mt-8">
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setIsAddingEntity(false);
-                      setEntityData({
-                        WorldID: { address: '', timestamp: '', type: '' },
-                        SelfID: { address: '', did: '' },
-                        VCProof: { proofHash: '', issuer: '', type: '' },
-                        TokenHolding: { address: '', token: '', amount: '', network: '' },
-                        TransferEvents: { from: '', to: '', token: '', amount: '', timestamp: '' },
-                      });
-                    }}
-                    className="px-6 py-3 border border-gray-600 text-gray-300 rounded-lg hover:bg-white/5 transition-colors"
-                  >
-                    Cancel
-                  </button>
-                  <button
-                    type="submit"
-                    className="px-6 py-3 bg-purple-600 hover:bg-purple-700 text-white rounded-lg font-semibold transition-colors"
-                  >
-                    Create Entities
-                  </button>
-                </div>
-              </form>
+                {/* Form Section */}
+                <form onSubmit={handleSubmit} className="xl:col-span-2">
+                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                    {Object.entries(entityTypes).map(([entityType, config]) => {
+                      const typeKey = entityType as keyof typeof entityData;
+                      const hasData = config.fields.some(
+                        (field) =>
+                          (entityData[typeKey] as any)[field.name] &&
+                          (entityData[typeKey] as any)[field.name].trim() !== '',
+                      );
+
+                      return (
+                        <div
+                          key={entityType}
+                          className={`bg-white/5 rounded-lg p-6 border transition-all duration-200 ${
+                            hasData ? 'border-green-500/50 bg-green-900/10' : 'border-white/10'
+                          }`}
+                        >
+                          <div className="flex items-center mb-4">
+                            <div
+                              className={`w-10 h-10 bg-gradient-to-r ${config.color} rounded-lg flex items-center justify-center mr-3`}
+                            >
+                              <span className="text-white text-lg">{config.icon}</span>
+                            </div>
+                            <div className="flex-1">
+                              <div className="flex items-center">
+                                <h3 className="text-lg font-semibold text-white">{config.title}</h3>
+                                {hasData && (
+                                  <span className="ml-2 px-2 py-1 bg-green-600 text-white text-xs rounded-full">
+                                    Filled
+                                  </span>
+                                )}
+                              </div>
+                              <p className="text-gray-400 text-sm">{config.description}</p>
+                            </div>
+                          </div>
+
+                          {config.fields.map((field) => (
+                            <div key={field.name} className="mb-4">
+                              <label className="block text-gray-300 text-sm font-semibold mb-2">{field.label}</label>
+                              <input
+                                type={field.type}
+                                value={(entityData[typeKey] as any)[field.name] || ''}
+                                onChange={(e) => updateEntityData(typeKey, field.name, e.target.value)}
+                                className="w-full px-4 py-3 bg-white/5 border border-white/20 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:border-purple-400 focus:ring-2 focus:ring-purple-400/20"
+                                placeholder={field.placeholder}
+                              />
+                            </div>
+                          ))}
+                        </div>
+                      );
+                    })}
+                  </div>
+
+                  <div className="flex justify-end space-x-4 mt-8">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setIsAddingEntity(false);
+                        setEntityData({
+                          WorldID: { address: '', timestamp: '', type: '' },
+                          SelfID: { address: '', did: '' },
+                          VCProof: { proofHash: '', issuer: '', type: '' },
+                          TokenHolding: { address: '', token: '', amount: '', network: '' },
+                          TransferEvents: { from: '', to: '', token: '', amount: '', timestamp: '' },
+                        });
+                        setJsonInput('');
+                        setParseError('');
+                        setParseSuccess('');
+                      }}
+                      className="px-6 py-3 border border-gray-600 text-gray-300 rounded-lg hover:bg-white/5 transition-colors"
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      type="submit"
+                      className="px-6 py-3 bg-purple-600 hover:bg-purple-700 text-white rounded-lg font-semibold transition-colors"
+                    >
+                      Create Entities
+                    </button>
+                  </div>
+                </form>
+              </div>
             </div>
           </div>
         )}
@@ -659,38 +903,6 @@ function PrivateSpace({ spaceId }: { spaceId: string }) {
               })}
             </div>
           )}
-        </div>
-
-        {/* Info Section */}
-        <div className="mt-16 grid grid-cols-1 md:grid-cols-2 gap-8">
-          <div className="bg-white/5 backdrop-blur-sm rounded-xl p-6 border border-purple-500/20">
-            <h3 className="text-xl font-semibold text-white mb-4">🔐 Privacy Features</h3>
-            <ul className="space-y-2 text-gray-300">
-              <li className="flex items-center">
-                <span className="w-2 h-2 bg-green-400 rounded-full mr-3"></span>
-                End-to-end encryption
-              </li>
-              <li className="flex items-center">
-                <span className="w-2 h-2 bg-blue-400 rounded-full mr-3"></span>
-                Private entity management
-              </li>
-              <li className="flex items-center">
-                <span className="w-2 h-2 bg-purple-400 rounded-full mr-3"></span>
-                Selective publishing
-              </li>
-            </ul>
-          </div>
-          <div className="bg-white/5 backdrop-blur-sm rounded-xl p-6 border border-pink-500/20">
-            <h3 className="text-xl font-semibold text-white mb-4">⚡ Entity Types</h3>
-            <div className="space-y-2">
-              {Object.entries(entityTypes).map(([type, config]) => (
-                <div key={type} className="flex items-center text-gray-300">
-                  <span className="text-lg mr-2">{config.icon}</span>
-                  <span>{type}</span>
-                </div>
-              ))}
-            </div>
-          </div>
         </div>
       </div>
     </div>
