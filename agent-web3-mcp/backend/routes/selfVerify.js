@@ -7,10 +7,7 @@
      InMemoryConfigStore
    } = require('@selfxyz/core');
    const { generateUserContextData } = require('../utils/generateUserContextData');
-<<<<<<< HEAD
    const SelfId = require('../models/SelfId');
-=======
->>>>>>> 0675ba6dd6d4c6e83a5cd33ea5c6ccc69f6728e5
    const User = require('../models/User');
 
    // Simple in-memory store for recent verifications (in production, use Redis or database)
