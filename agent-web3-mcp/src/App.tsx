@@ -2,14 +2,11 @@ import React from 'react';
 import { BrowserRouter as Router, Routes, Route, Link } from 'react-router-dom';
 import { ChatInterface } from './components/ChatInterface';
 import IdentityLinking from './components/IdentityLinking';
-<<<<<<< HEAD
-import ImportAgent from './components/ImportAgent';
-=======
+import AgentLinking from './components/AgentLinking';
 import MiniKitStatus from './components/MiniKitStatus';
 import AuthGuard from './components/AuthGuard';
 import WalletAuth from './components/WalletAuth';
 import MiniKitService from './services/miniKitService';
->>>>>>> 25026696b9805d247be76205e293348e2c247438
 import './App.css';
 
 function App() {
@@ -23,7 +20,7 @@ function App() {
     const initMiniKit = async () => {
       try {
         console.log('🔧 Initializing MiniKit...');
-        const initialized = MiniKitService.init();
+        MiniKitService.init();
         
         // Wait a moment for MiniKit to be ready
         setTimeout(() => {
@@ -62,27 +59,6 @@ function App() {
   return (
     <Router>
       <div className="App">
-<<<<<<< HEAD
-        {/* Simple navigation bar */}
-        <nav className="nav-bar">
-          <ul>
-            <li>
-              <Link to="/">Chat</Link>
-            </li>
-            <li>
-              <Link to="/identity-link">Link Identity</Link>
-            </li>
-          </ul>
-        </nav>
-        {/* Route handling */}
-        <div className="main-content">
-          <Routes>
-            <Route path="/" element={<ChatInterface />} />
-            <Route path="/identity-link" element={<IdentityLinking />} />
-            <Route path="/import-agent" element={<ImportAgent />} />
-          </Routes>
-        </div>
-=======
         <AuthGuard>
           {/* MiniKit Status Display */}
           <MiniKitStatus />
@@ -95,6 +71,9 @@ function App() {
               </li>
               <li>
                 <Link to="/identity-link">Link Identity</Link>
+              </li>
+              <li>
+                <Link to="/agent-link">Link Agent</Link>
               </li>
               <li>
                 <Link to="/wallet-auth">Wallet Auth</Link>
@@ -121,11 +100,11 @@ function App() {
             <Routes>
               <Route path="/" element={<ChatInterface />} />
               <Route path="/identity-link" element={<IdentityLinking />} />
+              <Route path="/agent-link" element={<AgentLinking />} />
               <Route path="/wallet-auth" element={<WalletAuth />} />
             </Routes>
           </div>
         </AuthGuard>
->>>>>>> 25026696b9805d247be76205e293348e2c247438
       </div>
     </Router>
   );

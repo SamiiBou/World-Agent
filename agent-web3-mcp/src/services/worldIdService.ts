@@ -1,4 +1,4 @@
-import { MiniKit, VerifyCommandInput, VerificationLevel, ISuccessResult, MiniAppVerifyActionPayload } from '@worldcoin/minikit-js';
+import { MiniKit, VerifyCommandInput, VerificationLevel } from '@worldcoin/minikit-js';
 import { config } from '../config/environment';
 
 export interface WorldIdVerificationResult {
