@@ -521,4 +521,86 @@
   color: #721c24;
   padding: 4px 8px;
   border-radius: 12px;
+}
+
+.vc-inline {
+  margin-top: 8px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.vc-label {
+  font-size: 12px;
+  font-weight: 600;
+  color: #2d3748;
+}
+
+.vc-download-btn {
+  background: #007bff;
+  color: white;
+  border: none;
+  padding: 2px 6px;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 12px;
+}
+
+.vc-download-btn:hover {
+  background: #0056b3;
+}
+
+.vc-modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0,0,0,0.5);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000;
+}
+.vc-modal {
+  background: #fff;
+  border-radius: 12px;
+  max-width: 90%;
+  max-height: 80vh;
+  width: 600px;
+  padding: 20px;
+  overflow: auto;
+}
+.vc-modal h3 {
+  margin-top: 0;
+}
+.vc-json-large {
+  font-family: 'Courier New', monospace;
+  font-size: 12px;
+  white-space: pre-wrap;
+  word-break: break-word;
+  max-height: 50vh;
+  overflow: auto;
+  background: #f8f9fa;
+  padding: 10px;
+  border-radius: 8px;
+  border: 1px solid #e9ecef;
+}
+.vc-modal-actions {
+  margin-top: 12px;
+  display: flex;
+  gap: 10px;
+  justify-content: flex-end;
+}
+.vc-close-btn {
+  background: #6c757d;
+  color: white;
+  border: none;
+  padding: 6px 12px;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 12px;
+}
+.vc-close-btn:hover {
+  background: #545b62;
 } 

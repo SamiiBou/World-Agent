@@ -30,7 +30,8 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({ className }) => {
   const [showAgentManager, setShowAgentManager] = useState(true);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const [identityStatus, setIdentityStatus] = useState<{self: boolean; world: boolean; hasVC: boolean}>({self:false, world:false, hasVC:false});
-  const [vcSummary, setVcSummary] = useState<any | null>(null);
+  const [vcObject, setVcObject] = useState<any | null>(null);
+  const [vcModalOpen, setVcModalOpen] = useState(false);
 
   useEffect(() => {
     // Load available tools and servers
@@ -75,7 +76,7 @@ How can I help you today?`,
       fetchVCInfo(selectedAgent.address);
     } else {
       setIdentityStatus({self:false, world:false, hasVC:false});
-      setVcSummary(null);
+      setVcObject(null);
     }
   }, [selectedAgent]);
 
@@ -95,18 +96,21 @@ How can I help you today?`,
       const data = await backendService.getAgentVC(agentAddress);
       if (data && data.vc) {
         const vc = data.vc;
-        const selfLinked = Boolean(vc.humanProof?.selfId);
-        const worldLinked = Boolean(vc.humanProof?.worldId);
+        const selfProof = vc.humanProof?.selfId || null;
+        const worldProof = vc.humanProof?.worldId || null;
+        const selfLinked = !!(selfProof && Object.keys(selfProof).length > 0);
+        const worldLinked = !!(worldProof && Object.keys(worldProof).length > 0);
         setIdentityStatus({self:selfLinked, world:worldLinked, hasVC:true});
-        setVcSummary(data.summary || vc);
+        console.log('📜 VC fetched for agent', vc);
+        setVcObject(vc);
       } else {
         setIdentityStatus({self:false, world:false, hasVC:false});
-        setVcSummary(null);
+        setVcObject(null);
       }
     } catch (err) {
       console.log('No VC found for agent', err);
       setIdentityStatus({self:false, world:false, hasVC:false});
-      setVcSummary(null);
+      setVcObject(null);
     }
   };
 
@@ -248,6 +252,16 @@ How can I help you today?`,
     );
   };
 
+  const downloadVC = (vc:any) => {
+    const blob = new Blob([JSON.stringify(vc, null, 2)], {type: 'application/json'});
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `${vc.vcId || 'agent-vc'}.json`;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
   return (
     <div className={`chat-interface ${className || ''}`}>
       {/* Agent Manager - shown at top or when no agent selected */}
@@ -256,7 +270,7 @@ How can I help you today?`,
           selectedAgent={selectedAgent}
           onAgentSelected={handleAgentSelected}
           onAgentCreated={handleAgentCreated}
-          vcSummary={vcSummary}
+          vcObject={vcObject}
         />
       )}
 
@@ -291,6 +305,17 @@ How can I help you today?`,
                     <span className="value">{selectedAgent.balance} ETH</span>
                   </div>
                 </div>
+                {/* Inline VC preview */}
+                {vcObject && (
+                  <div className="vc-inline">
+                    <span className="vc-label">📜 VC:</span>
+                    <button
+                      type="button"
+                      className="vc-download-btn"
+                      onClick={() => setVcModalOpen(true)}
+                    >⬇️</button>
+                  </div>
+                )}
               </div>
             </div>
             <div className="connection-status">
@@ -368,6 +393,19 @@ How can I help you today?`,
           <div className="no-agent-icon">🤖</div>
           <h3>No Agent Selected</h3>
           <p>Please select or create an agent to start chatting.</p>
+        </div>
+      )}
+
+      {vcModalOpen && vcObject && (
+        <div className="vc-modal-overlay" onClick={()=>setVcModalOpen(false)}>
+          <div className="vc-modal" onClick={(e)=>e.stopPropagation()}>
+            <h3>📜 Verifiable Credential</h3>
+            <pre className="vc-json-large">{JSON.stringify(vcObject, null, 2)}</pre>
+            <div className="vc-modal-actions">
+              <button className="vc-download-btn" onClick={()=>downloadVC(vcObject)}>Download JSON</button>
+              <button className="vc-close-btn" onClick={()=>setVcModalOpen(false)}>Close</button>
+            </div>
+          </div>
         </div>
       )}
     </div>

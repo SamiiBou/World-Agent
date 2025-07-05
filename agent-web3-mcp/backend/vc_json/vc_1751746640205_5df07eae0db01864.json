@@ -1,0 +1,21 @@
+{
+  "vcId": "vc_1751746640205_5df07eae0db01864",
+  "agentId": "0x14242Fe56CfD5CA89E7b4CC2a4d760d78cEBCE4f",
+  "humanProof": {
+    "selfId": {
+      "attestationId": 1,
+      "verifiedAt": 1751744342
+    }
+  },
+  "declaration": {
+    "description": "I, seniorpumpkin.0842, confirm that I control the agent test2",
+    "createdAt": 1751746640
+  },
+  "issuer": "agent-id-protocol",
+  "schemaUrl": "https://your-protocol.xyz/schemas/agent-link-vc.json",
+  "issuedAt": 1751746640,
+  "version": "1.0.0",
+  "signature": "0xde41bd7ac2342505deadc5eee834da9d2422eab2ca620d6c9a568bbe5c58bf890c55b4c996bbab8e1aa4a2bae45f7389113aeff71825744acc6bb0080e7180ac1c",
+  "signedAt": 1751746640,
+  "signerAddress": "0x4Aa0B81F700b7053F98eD21e704B25F1A4A52e69"
+}

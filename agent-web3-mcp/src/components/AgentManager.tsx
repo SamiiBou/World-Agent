@@ -7,14 +7,14 @@ interface AgentManagerProps {
   selectedAgent: Agent | null;
   onAgentSelected: (agent: Agent | null) => void;
   onAgentCreated: (agent: Agent) => void;
-  vcSummary?: any | null;
+  vcObject?: any | null;
 }
 
 export const AgentManager: React.FC<AgentManagerProps> = ({ 
   selectedAgent, 
   onAgentSelected, 
   onAgentCreated,
-  vcSummary
+  vcObject
 }) => {
   const [agents, setAgents] = useState<Agent[]>([]);
   const [loading, setLoading] = useState(false);
@@ -328,12 +328,21 @@ export const AgentManager: React.FC<AgentManagerProps> = ({
             </div>
           </div>
 
-          {vcSummary && (
+          {vcObject && (
             <div className="vc-preview">
               <h4>📜 Verifiable Credential</h4>
               <pre className="vc-json">
-                {JSON.stringify(vcSummary, null, 2)}
+                {JSON.stringify(vcObject, null, 2)}
               </pre>
+              <button className="download-vc-btn" onClick={() => {
+                const blob = new Blob([JSON.stringify(vcObject, null, 2)], {type: 'application/json'});
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `${vcObject.vcId || 'agent-vc'}.json`;
+                a.click();
+                URL.revokeObjectURL(url);
+              }}>⬇️ Download VC</button>
             </div>
           )}
         </div>
