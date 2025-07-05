@@ -293,6 +293,73 @@ function PublicSpace({ spaceId }: { spaceId: string }) {
           </nav>
         </div>
 
+        {/* Debug Panel for Publishing Issues */}
+        <div className="bg-yellow-900/20 backdrop-blur-sm rounded-xl p-6 border border-yellow-500/30 mb-8">
+          <h3 className="text-lg font-semibold text-yellow-400 mb-4">🔍 Debug Panel - Publishing Issues</h3>
+
+          <div className="bg-blue-900/20 border border-blue-500/30 rounded-lg p-4 mb-4">
+            <h4 className="text-blue-300 font-semibold text-sm mb-2">📊 Current Status</h4>
+            <div className="text-blue-200 text-xs space-y-1">
+              <p>• Space Ready: {ready ? '✅' : '❌'}</p>
+              <p>• Space Name: {name || 'Loading...'}</p>
+              <p>• Space ID: {spaceId}</p>
+              <p>• Total Entities: {allEntities.length}</p>
+              <p>• Last Updated: {new Date().toLocaleTimeString()}</p>
+            </div>
+          </div>
+
+          <div className="bg-orange-900/20 border border-orange-500/30 rounded-lg p-4 mb-4">
+            <h4 className="text-orange-300 font-semibold text-sm mb-2">⚠️ If Your Data Isn't Showing</h4>
+            <div className="text-orange-200 text-xs space-y-1">
+              <p>• Data might still be indexing (wait 1-2 minutes)</p>
+              <p>• You might be in the wrong public space</p>
+              <p>• Click "Force Refresh" below to reload all data</p>
+              <p>• Check browser console for errors (F12)</p>
+            </div>
+          </div>
+
+          <div className="flex space-x-2">
+            <button
+              onClick={() => {
+                console.log('=== PUBLIC SPACE DEBUG ===');
+                console.log('Space ID:', spaceId);
+                console.log('Space ready:', ready);
+                console.log('Space name:', name);
+                console.log('All entities:', allEntities);
+                console.log('Entity counts:', {
+                  accounts: accounts?.length || 0,
+                  worldIDs: worldIDs?.length || 0,
+                  selfIDs: selfIDs?.length || 0,
+                  vcProofs: vcProofs?.length || 0,
+                  tokenHoldings: tokenHoldings?.length || 0,
+                  transferEvents: transferEvents?.length || 0,
+                });
+              }}
+              className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm font-semibold transition-colors"
+            >
+              Log Debug Info
+            </button>
+            <button
+              onClick={() => {
+                console.log('Force refreshing all entities...');
+                refetchAllEntities();
+                alert('Refreshing data... Please wait 30 seconds and check again.');
+              }}
+              className="px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg text-sm font-semibold transition-colors"
+            >
+              Force Refresh
+            </button>
+            <button
+              onClick={() => {
+                window.location.reload();
+              }}
+              className="px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-lg text-sm font-semibold transition-colors"
+            >
+              Hard Refresh Page
+            </button>
+          </div>
+        </div>
+
         {/* Entities Grid */}
         <div className="bg-white/5 backdrop-blur-sm rounded-xl p-8 border border-white/10">
           <div className="flex items-center justify-between mb-8">
