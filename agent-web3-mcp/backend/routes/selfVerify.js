@@ -7,7 +7,10 @@
      InMemoryConfigStore
    } = require('@selfxyz/core');
    const { generateUserContextData } = require('../utils/generateUserContextData');
+<<<<<<< HEAD
    const SelfId = require('../models/SelfId');
+=======
+>>>>>>> 0675ba6dd6d4c6e83a5cd33ea5c6ccc69f6728e5
    const User = require('../models/User');
 
    // Simple in-memory store for recent verifications (in production, use Redis or database)
@@ -150,24 +153,25 @@
        
        console.log('✅ Verification successful!', result);
        
-       // Persist verification to MongoDB SelfId collection
-       const uniqueHash = result.discloseOutput?.nullifier?.toString();
+       // Persist verification to MongoDB User collection (selfIdVerification)
+       const userIdentifier = result.userData?.userIdentifier;
        try {
-         await SelfId.findOneAndUpdate(
-           { uniqueHash },
+         await User.findOneAndUpdate(
+           { 'selfIdVerification.userIdentifier': userIdentifier },
            {
-             uniqueHash,
-             proof,
-             pubSignals,
-             isValidDetails: result.isValidDetails,
-             forbiddenCountriesList: result.forbiddenCountriesList,
-             discloseOutput: result.discloseOutput,
-             verifiedAt: new Date()
+             // Optional walletAddress can be filled later during linking flow
+             selfIdVerification: {
+               isVerified: true,
+               userIdentifier,
+               verificationDate: new Date(),
+               verificationData: result
+             },
+             updatedAt: new Date()
            },
            { upsert: true, setDefaultsOnInsert: true }
          );
        } catch (dbErr) {
-         console.error('Error saving SelfId verification:', dbErr);
+         console.error('Error saving selfId verification in User collection:', dbErr);
        }
        
        // Store verification result for frontend retrieval

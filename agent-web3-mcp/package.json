@@ -5,6 +5,7 @@
   "dependencies": {
     "@ai-sdk/openai": "^1.3.22",
     "@ai-sdk/react": "^1.2.12",
+    "@selfxyz/contracts": "^1.2.0",
     "@selfxyz/core": "^1.0.5-beta.1",
     "@selfxyz/qrcode": "^1.0.10-beta.1",
     "@testing-library/dom": "^10.4.0",
