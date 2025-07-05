@@ -69,10 +69,9 @@ export default function SelfVerificationQR() {
           <div className="next-steps">
             <h3>What's Next?</h3>
             <ul>
-              <li>🤖 Create agents with enhanced capabilities</li>
-              <li>🔒 Access secure transaction features</li>
-              <li>⚡ Enjoy faster processing times</li>
-              <li>🌐 Use cross-platform identity verification</li>
+              <li>🤖 Create agents with various capabilities</li>
+              <li>🔒 Import an agent and connect your IDs</li>
+              <li>🌐 cross-platform identity verification</li>
             </ul>
           </div>
 
@@ -80,7 +79,13 @@ export default function SelfVerificationQR() {
             className="continue-button"
             onClick={() => window.location.href = '/'}
           >
-            Continue to Chat
+            Create Agent and Connect IDs
+          </button>
+          <button
+            className="continue-button import-btn"
+            onClick={() => window.location.href = '/import-agent'}
+          >
+            Import Existing Agent
           </button>
         </div>
       </div>
@@ -197,7 +202,6 @@ export default function SelfVerificationQR() {
         <div className="config-card">
           <h3>Configuration</h3>
           <ul className="config-list">
-            <li><span>Scope:</span> my-application-scope</li>
             <li><span>Minimum Age:</span> 18</li>
             <li><span>Excluded Countries:</span> Iran, North Korea</li>
             <li><span>OFAC Check:</span> Enabled</li>
