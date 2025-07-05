@@ -1,7 +1,7 @@
 import React from 'react';
 import { BrowserRouter as Router, Routes, Route, Link } from 'react-router-dom';
 import { ChatInterface } from './components/ChatInterface';
-import SelfVerificationQR from './components/SelfQRCode';
+import IdentityLinking from './components/IdentityLinking';
 import './App.css';
 
 function App() {
@@ -20,10 +20,12 @@ function App() {
           </ul>
         </nav>
         {/* Route handling */}
-        <Routes>
-          <Route path="/" element={<ChatInterface />} />
-          <Route path="/identity-link" element={<SelfVerificationQR />} />
-        </Routes>
+        <div className="main-content">
+          <Routes>
+            <Route path="/" element={<ChatInterface />} />
+            <Route path="/identity-link" element={<IdentityLinking />} />
+          </Routes>
+        </div>
       </div>
     </Router>
   );
