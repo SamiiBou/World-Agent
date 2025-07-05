@@ -40,7 +40,10 @@ const Root = () => {
 
               <div className="flex items-center space-x-6">
                 <Link to="/" className="text-gray-300 hover:text-white transition-colors font-medium">
-                  Home
+                  Public Spaces
+                </Link>
+                <Link to="/private-spaces" className="text-gray-300 hover:text-white transition-colors font-medium">
+                  Private Spaces
                 </Link>
                 <div className="w-px h-6 bg-gray-600"></div>
                 <Logout />

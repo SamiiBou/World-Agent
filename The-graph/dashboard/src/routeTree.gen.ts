@@ -9,12 +9,18 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
+import { Route as PrivateSpacesRouteImport } from './routes/private-spaces'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as AuthenticateSuccessRouteImport } from './routes/authenticate-success'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as PublicSpaceSpaceIdRouteImport } from './routes/public-space/$space-id'
 import { Route as PrivateSpaceSpaceIdRouteImport } from './routes/private-space/$space-id'
 
+const PrivateSpacesRoute = PrivateSpacesRouteImport.update({
+  id: '/private-spaces',
+  path: '/private-spaces',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const LoginRoute = LoginRouteImport.update({
   id: '/login',
   path: '/login',
@@ -45,6 +51,7 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/authenticate-success': typeof AuthenticateSuccessRoute
   '/login': typeof LoginRoute
+  '/private-spaces': typeof PrivateSpacesRoute
   '/private-space/$space-id': typeof PrivateSpaceSpaceIdRoute
   '/public-space/$space-id': typeof PublicSpaceSpaceIdRoute
 }
@@ -52,6 +59,7 @@ export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/authenticate-success': typeof AuthenticateSuccessRoute
   '/login': typeof LoginRoute
+  '/private-spaces': typeof PrivateSpacesRoute
   '/private-space/$space-id': typeof PrivateSpaceSpaceIdRoute
   '/public-space/$space-id': typeof PublicSpaceSpaceIdRoute
 }
@@ -60,6 +68,7 @@ export interface FileRoutesById {
   '/': typeof IndexRoute
   '/authenticate-success': typeof AuthenticateSuccessRoute
   '/login': typeof LoginRoute
+  '/private-spaces': typeof PrivateSpacesRoute
   '/private-space/$space-id': typeof PrivateSpaceSpaceIdRoute
   '/public-space/$space-id': typeof PublicSpaceSpaceIdRoute
 }
@@ -69,6 +78,7 @@ export interface FileRouteTypes {
     | '/'
     | '/authenticate-success'
     | '/login'
+    | '/private-spaces'
     | '/private-space/$space-id'
     | '/public-space/$space-id'
   fileRoutesByTo: FileRoutesByTo
@@ -76,6 +86,7 @@ export interface FileRouteTypes {
     | '/'
     | '/authenticate-success'
     | '/login'
+    | '/private-spaces'
     | '/private-space/$space-id'
     | '/public-space/$space-id'
   id:
@@ -83,6 +94,7 @@ export interface FileRouteTypes {
     | '/'
     | '/authenticate-success'
     | '/login'
+    | '/private-spaces'
     | '/private-space/$space-id'
     | '/public-space/$space-id'
   fileRoutesById: FileRoutesById
@@ -91,12 +103,20 @@ export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AuthenticateSuccessRoute: typeof AuthenticateSuccessRoute
   LoginRoute: typeof LoginRoute
+  PrivateSpacesRoute: typeof PrivateSpacesRoute
   PrivateSpaceSpaceIdRoute: typeof PrivateSpaceSpaceIdRoute
   PublicSpaceSpaceIdRoute: typeof PublicSpaceSpaceIdRoute
 }
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
+    '/private-spaces': {
+      id: '/private-spaces'
+      path: '/private-spaces'
+      fullPath: '/private-spaces'
+      preLoaderRoute: typeof PrivateSpacesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/login': {
       id: '/login'
       path: '/login'
@@ -139,6 +159,7 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AuthenticateSuccessRoute: AuthenticateSuccessRoute,
   LoginRoute: LoginRoute,
+  PrivateSpacesRoute: PrivateSpacesRoute,
   PrivateSpaceSpaceIdRoute: PrivateSpaceSpaceIdRoute,
   PublicSpaceSpaceIdRoute: PublicSpaceSpaceIdRoute,
 }
