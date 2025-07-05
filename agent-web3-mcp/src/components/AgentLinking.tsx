@@ -80,7 +80,7 @@ const AgentLinking: React.FC<AgentLinkingProps> = ({ agentId, walletAddress }) =
       }
     };
     loadEns();
-  }, [currentWalletAddress]);
+  }, [currentWalletAddress, ensName]);
 
   const handleLinkAgent = async () => {
     if (!currentAgentId || !currentWalletAddress || !declaration) {
