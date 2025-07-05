@@ -50,7 +50,7 @@ npm start
 ## 🎯 First Steps
 
 ### 1. Check the connection
-- Open your browser to `https://399c788608d9.ngrok.app`
+- Open your browser to `https://77789bb5180a.ngrok.app`
 - You should see the connection status in the top right
 - If the backend is not connected, check that MongoDB and the backend are running
 
@@ -99,7 +99,7 @@ npm start
 
 ### Create an agent
 ```bash
-curl -X POST https://7048b6546b0f.ngrok.app/api/agents \
+curl -X POST https://37b2a30b1f1c.ngrok.app/api/agents \
   -H "Content-Type: application/json" \
   -d '{
     "name": "Agent Name",
@@ -110,17 +110,17 @@ curl -X POST https://7048b6546b0f.ngrok.app/api/agents \
 
 ### List agents
 ```bash
-curl https://7048b6546b0f.ngrok.app/api/agents
+curl https://37b2a30b1f1c.ngrok.app/api/agents
 ```
 
 ### Get agent balance
 ```bash
-curl https://7048b6546b0f.ngrok.app/api/agents/{id}/balance
+curl https://37b2a30b1f1c.ngrok.app/api/agents/{id}/balance
 ```
 
 ### Transfer simulation
 ```bash
-curl -X POST https://7048b6546b0f.ngrok.app/api/agents/{id}/transfer \
+curl -X POST https://37b2a30b1f1c.ngrok.app/api/agents/{id}/transfer \
   -H "Content-Type: application/json" \
   -d '{
     "to": "0x...",

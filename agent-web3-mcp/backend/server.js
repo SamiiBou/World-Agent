@@ -5,6 +5,8 @@ const helmet = require('helmet');
 const rateLimit = require('express-rate-limit');
 const { ethers } = require('ethers');
 const crypto = require('crypto');
+const fs = require('fs');
+const path = require('path');
 require('dotenv').config();
 
 const Agent = require('./models/Agent');
@@ -13,6 +15,12 @@ const worldchainService = require('./services/worldchainService');
 const agentRegistryService = require('./services/agentRegistryService');
 const worldIdVerifyRoute = require('./routes/worldIdVerify');
 const selfVerifyRoute = require('./routes/selfVerify');
+const VC = require('./models/VC');
+const vcService = require('./services/vcService');
+const dappSigner = new ethers.Wallet(
+  process.env.DAPP_PRIVATE_KEY || '0x1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef',
+  new ethers.JsonRpcProvider(process.env.WORLD_CHAIN_RPC_URL)
+);
 
 const app = express();
 const PORT = process.env.PORT || 3001;
@@ -23,7 +31,11 @@ app.set('trust proxy', 1);
 // Security middleware
 app.use(helmet());
 app.use(cors({
-  origin: process.env.PUBLIC_URL || 'http://localhost:5173',
+  origin: [
+    'http://localhost:5173',
+    'https://77789bb5180a.ngrok.app',
+    'https://37b2a30b1f1c.ngrok.app'
+  ],
   credentials: true
 }));
 
@@ -190,22 +202,13 @@ app.post('/api/agents', authenticateWallet, async (req, res) => {
     
     console.log('✅ Generated unique username:', username);
     
-    // Check if user has both World ID and Self ID verifications
-    if (!user.worldIdVerification?.isVerified) {
-      console.log('❌ World ID verification missing');
-      console.log('🔍 World ID verification data:', user.worldIdVerification);
+/*     // Check if user has at least one verification (World ID or Self ID)
+    if (!user.worldIdVerification?.isVerified && !user.selfIdVerification?.isVerified) {
+      console.log('❌ No identity verification found');
       return res.status(400).json({
-        error: 'World ID verification is required to create an agent'
+        error: 'At least one identity verification (World ID or Self ID) is required to create an agent'
       });
-    }
-    
-    if (!user.selfIdVerification?.isVerified) {
-      console.log('❌ Self ID verification missing');
-      console.log('🔍 Self ID verification data:', user.selfIdVerification);
-      return res.status(400).json({
-        error: 'Self ID verification is required to create an agent'
-      });
-    }
+    } */
     
     console.log('✅ All validations passed');
     
@@ -313,7 +316,57 @@ app.post('/api/agents', authenticateWallet, async (req, res) => {
     console.log('🔗 Linking agent to user...');
     await user.linkAgent(agent._id);
     console.log('✅ Agent linked to user successfully');
-    
+
+    // === Auto-generate VC linking human and agent ===
+    try {
+      if (user.worldIdVerification?.isVerified || user.selfIdVerification?.isVerified) {
+        console.log('🧾 Generating VC for new agent...');
+        const vc = await vcService.assembleAgentVC({
+          agentId: address,
+          user: user,
+          declaration: `I, ${user.username || user.walletAddress}, confirm that I control the agent ${name}`
+        });
+
+        // Hash & sign
+        const vcHash = vcService.generateVCHash(vc);
+        const vcDoc = new VC({
+          vcId: vc.vcId,
+          agentId: vc.agentId,
+          humanProof: vc.humanProof,
+          declaration: vc.declaration,
+          issuer: vc.issuer,
+          schemaUrl: vc.schemaUrl,
+          issuedAt: vc.issuedAt,
+          version: vc.version,
+          vcHash: vcHash,
+          status: 'issued',
+          userRef: user._id,
+          agentRef: agent._id
+        });
+
+        try {
+          const dappSignature = await dappSigner.signMessage(ethers.getBytes(vcHash));
+          await vcDoc.sign(dappSignature, dappSigner.address);
+        } catch (sigErr) {
+          console.error('VC DApp signing failed:', sigErr);
+        }
+
+        await vcDoc.save();
+
+        // Write JSON file for debug/preview
+        const outDir = path.join(__dirname, 'vc_json');
+        if (!fs.existsSync(outDir)) {
+          fs.mkdirSync(outDir);
+        }
+        fs.writeFileSync(path.join(outDir, `${vc.vcId}.json`), JSON.stringify(vcDoc.toVC(), null, 2));
+        console.log('✅ VC generated and saved as JSON');
+      } else {
+        console.log('No identity verification found, skipping VC generation');
+      }
+    } catch (vcErr) {
+      console.error('VC generation failed:', vcErr);
+    }
+
     // Return the agent with clean info
     console.log('📤 Sending success response...');
     res.status(201).json({
@@ -782,15 +835,12 @@ app.put('/api/agents/:id', authenticateWallet, async (req, res) => {
 app.use('/api/worldid', worldIdVerifyRoute);
 app.use('/api/self', selfVerifyRoute);
 
-<<<<<<< HEAD
 // Agent linking routes
 const agentLinkRouter = require('./routes/agentLink');
 app.use('/api/agents', agentLinkRouter);
 
 // Route pour générer un nonce pour l'authentification SIWE
-=======
 // Route to generate a nonce for SIWE authentication
->>>>>>> 8bdda5020fdd53a48a029a262c6bce3db2d4b357
 app.get('/api/nonce', (req, res) => {
   try {
     // Generate a nonce that is at least 8 alphanumeric characters

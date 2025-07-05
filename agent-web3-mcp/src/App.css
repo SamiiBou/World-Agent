@@ -11,7 +11,6 @@ html, body {
     sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
-  /* Removed overflow: hidden to allow scrolling on mobile */
   -webkit-overflow-scrolling: touch; /* Smooth scrolling on iOS */
 }
 
@@ -198,5 +197,15 @@ code {
   /* Prevent zoom on form inputs */
   input, select, textarea {
     font-size: 16px;
+  }
+  
+  /* Mobile main content adjustments */
+  .main-content {
+    padding: 0.5rem;
+  }
+  
+  .main-content > * {
+    width: 100%;
+    max-width: none; /* Remove max-width constraint on mobile */
   }
 }

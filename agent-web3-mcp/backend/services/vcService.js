@@ -4,7 +4,7 @@ const { ethers } = require('ethers');
 class VCService {
   constructor() {
     this.issuer = 'agent-id-protocol';
-    this.schema = 'https://your-protocol.xyz/schemas/agent-link-vc.json';
+    this.schemaUrl = 'https://your-protocol.xyz/schemas/agent-link-vc.json';
   }
 
   /**
@@ -75,7 +75,7 @@ class VCService {
       // VC Metadata
       vcId: this.generateVCId(),
       issuer: this.issuer,
-      schema: this.schema,
+      schemaUrl: this.schemaUrl,
       issuedAt: timestamp,
       version: '1.0.0'
     };

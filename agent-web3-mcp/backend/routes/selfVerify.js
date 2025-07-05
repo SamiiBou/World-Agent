@@ -39,13 +39,13 @@
 
    // Use testnet mode (false) instead of mainnet (true) to avoid InvalidRoot errors
    const verifier = new SelfBackendVerifier(
-  'my-application-scope',
-  'https://7048b6546b0f.ngrok.app/api/verify',
-  false,  // Changed from true to false - this enables testnet mode
-  allowedIds,
-  configStorage,
-  'uuid'  // User identifier type
-);
+     'my-application-scope',
+     'https://37b2a30b1f1c.ngrok.app/api/self/verify',  // Fixed endpoint path
+     false,  // Changed from true to false - this enables testnet mode
+     allowedIds,
+     configStorage,
+     'uuid'  // User identifier type
+   );
 
    router.post('/verify', async (req, res) => {
      try {
@@ -116,7 +116,7 @@
          userContextData = generateUserContextData({
            userId: userId || 'default-user',
            scope: 'my-application-scope',
-           endpoint: 'https://7048b6546b0f.ngrok.app/',
+           endpoint: 'https://37b2a30b1f1c.ngrok.app/api/self/verify',
            customData: {
              action: 'verification',
              userDefinedData: userDefinedData || 'test'
@@ -131,7 +131,7 @@
          userContextData = generateUserContextData({
            userId: userId || 'default-user',
            scope: 'my-application-scope',
-           endpoint: 'https://7048b6546b0f.ngrok.app/api/verify',
+           endpoint: 'https://37b2a30b1f1c.ngrok.app/api/self/verify',
            customData: {
              action: 'verification',
              userDefinedData: userDefinedData || 'test'

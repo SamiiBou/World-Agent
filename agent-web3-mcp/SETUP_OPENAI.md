@@ -43,7 +43,7 @@ REACT_APP_AGENT_NAME=AgentWeb3
 REACT_APP_AGENT_DESCRIPTION=AI Agent with World Chain and MCP support
 
 # MCP Configuration
-REACT_APP_MCP_SERVER_URL=https://7048b6546b0f.ngrok.app/mcp
+REACT_APP_MCP_SERVER_URL=https://37b2a30b1f1c.ngrok.app/mcp
 
 # World Chain Configuration (already configured)
 REACT_APP_WORLDCHAIN_ALCHEMY_API_KEY=vCq59BHgMYA2JIRKAbRPmIL8OaTeRAgu

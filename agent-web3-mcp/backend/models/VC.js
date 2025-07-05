@@ -53,7 +53,7 @@ const vcSchema = new mongoose.Schema({
     default: 'agent-id-protocol'
   },
   
-  schema: {
+  schemaUrl: {
     type: String,
     required: true,
     default: 'https://your-protocol.xyz/schemas/agent-link-vc.json'
@@ -188,7 +188,7 @@ vcSchema.methods.toVC = function() {
     humanProof: this.humanProof,
     declaration: this.declaration,
     issuer: this.issuer,
-    schema: this.schema,
+    schemaUrl: this.schemaUrl,
     issuedAt: this.issuedAt,
     version: this.version
   };
