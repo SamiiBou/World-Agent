@@ -3,6 +3,7 @@ import { agentService } from '../services/agentService';
 import { MCPMessage, MCPToolCall, MCPToolResult } from '../types/mcp';
 import { AgentManager } from './AgentManager';
 import { Agent } from '../services/backendService';
+import { backendService } from '../services/backendService';
 import './ChatInterface.css';
 
 interface ChatInterfaceProps {
@@ -28,6 +29,8 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({ className }) => {
   const [selectedAgent, setSelectedAgent] = useState<Agent | null>(null);
   const [showAgentManager, setShowAgentManager] = useState(true);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const [identityStatus, setIdentityStatus] = useState<{self: boolean; world: boolean; hasVC: boolean}>({self:false, world:false, hasVC:false});
+  const [vcSummary, setVcSummary] = useState<any | null>(null);
 
   useEffect(() => {
     // Load available tools and servers
@@ -66,6 +69,16 @@ How can I help you today?`,
     }
   }, [selectedAgent]);
 
+  useEffect(() => {
+    if (selectedAgent) {
+      // fetch VC info
+      fetchVCInfo(selectedAgent.address);
+    } else {
+      setIdentityStatus({self:false, world:false, hasVC:false});
+      setVcSummary(null);
+    }
+  }, [selectedAgent]);
+
   const loadAgentData = async () => {
     try {
       const tools = agentService.getAvailableTools();
@@ -74,6 +87,26 @@ How can I help you today?`,
       setConnectedServers(servers);
     } catch (error) {
       console.error('Error loading agent data:', error);
+    }
+  };
+
+  const fetchVCInfo = async (agentAddress: string) => {
+    try {
+      const data = await backendService.getAgentVC(agentAddress);
+      if (data && data.vc) {
+        const vc = data.vc;
+        const selfLinked = Boolean(vc.humanProof?.selfId);
+        const worldLinked = Boolean(vc.humanProof?.worldId);
+        setIdentityStatus({self:selfLinked, world:worldLinked, hasVC:true});
+        setVcSummary(data.summary || vc);
+      } else {
+        setIdentityStatus({self:false, world:false, hasVC:false});
+        setVcSummary(null);
+      }
+    } catch (err) {
+      console.log('No VC found for agent', err);
+      setIdentityStatus({self:false, world:false, hasVC:false});
+      setVcSummary(null);
     }
   };
 
@@ -223,6 +256,7 @@ How can I help you today?`,
           selectedAgent={selectedAgent}
           onAgentSelected={handleAgentSelected}
           onAgentCreated={handleAgentCreated}
+          vcSummary={vcSummary}
         />
       )}
 
@@ -265,6 +299,11 @@ How can I help you today?`,
               </div>
               <div className="tools-count">
                 🔧 {availableTools.length} tool(s) available
+              </div>
+              <div className="identity-status">
+                <div className={identityStatus.self ? 'linked' : 'unlinked'}>🆔 Self {identityStatus.self ? '✅' : '❌'}</div>
+                <div className={identityStatus.world ? 'linked' : 'unlinked'}>🌍 World {identityStatus.world ? '✅' : '❌'}</div>
+                <div className={identityStatus.hasVC ? 'linked' : 'unlinked'}>📜 VC {identityStatus.hasVC ? '✅' : '❌'}</div>
               </div>
             </div>
           </div>

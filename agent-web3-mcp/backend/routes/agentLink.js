@@ -106,7 +106,7 @@ router.post('/:agentId/link', async (req, res) => {
       humanProof: vc.humanProof,
       declaration: vc.declaration,
       issuer: vc.issuer,
-      schema: vc.schema,
+      schemaUrl: vc.schemaUrl,
       issuedAt: vc.issuedAt,
       version: vc.version,
       vcHash: vcHash,

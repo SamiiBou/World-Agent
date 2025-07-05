@@ -7,12 +7,14 @@ interface AgentManagerProps {
   selectedAgent: Agent | null;
   onAgentSelected: (agent: Agent | null) => void;
   onAgentCreated: (agent: Agent) => void;
+  vcSummary?: any | null;
 }
 
 export const AgentManager: React.FC<AgentManagerProps> = ({ 
   selectedAgent, 
   onAgentSelected, 
-  onAgentCreated 
+  onAgentCreated,
+  vcSummary
 }) => {
   const [agents, setAgents] = useState<Agent[]>([]);
   const [loading, setLoading] = useState(false);
@@ -325,6 +327,15 @@ export const AgentManager: React.FC<AgentManagerProps> = ({
               <span className="stat-value">{new Date(selectedAgent.createdAt).toLocaleDateString()}</span>
             </div>
           </div>
+
+          {vcSummary && (
+            <div className="vc-preview">
+              <h4>📜 Verifiable Credential</h4>
+              <pre className="vc-json">
+                {JSON.stringify(vcSummary, null, 2)}
+              </pre>
+            </div>
+          )}
         </div>
       )}
     </div>

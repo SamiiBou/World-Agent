@@ -204,6 +204,11 @@ class BackendService {
       return false;
     }
   }
+
+  // 🧾 Get VC for an agent
+  async getAgentVC(agentAddress: string): Promise<any> {
+    return this.fetchAPI(`/agents/${agentAddress}/vc`);
+  }
 }
 
 export const backendService = new BackendService(); 
