@@ -90,7 +90,7 @@ You can now ask your agent:
 
 ```bash
 # Check your agent's balance
-curl -X POST http://localhost:3001/api/mcp/call \
+curl -X POST https://7048b6546b0f.ngrok.app/api/mcp/call \
   -H "Content-Type: application/json" \
   -d '{
     "method": "worldchain_balance",
@@ -100,7 +100,7 @@ curl -X POST http://localhost:3001/api/mcp/call \
   }'
 
 # Transfer simulation
-curl -X POST http://localhost:3001/api/mcp/call \
+curl -X POST https://7048b6546b0f.ngrok.app/api/mcp/call \
   -H "Content-Type: application/json" \
   -d '{
     "method": "worldchain_transfer", 

@@ -4,6 +4,13 @@ import './index.css';
 import App from './App';
 import reportWebVitals from './reportWebVitals';
 
+// Initialize eruda for debugging (only in development)
+if (process.env.NODE_ENV === 'development') {
+  import('eruda').then((eruda) => {
+    eruda.default.init();
+  });
+}
+
 const root = ReactDOM.createRoot(
   document.getElementById('root') as HTMLElement
 );

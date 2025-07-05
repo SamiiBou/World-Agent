@@ -3,6 +3,7 @@ import { SelfQRcodeWrapper, SelfAppBuilder } from '@selfxyz/qrcode';
 import { v4 as uuidv4 } from 'uuid';
 import './SelfQRCode.css';
 import VerificationStorage from '../utils/verificationStorage';
+import { config } from '../config/environment';
 
 export default function SelfVerificationQR() {
   const [userId, setUserId] = useState<string | null>(null);
@@ -87,11 +88,12 @@ export default function SelfVerificationQR() {
     );
   }
 
-  // Create the SelfApp configuration according to documentation
+  // Create the SelfApp configuration according to documentation  
+  const backendUrl = config.backend.baseUrl;
   const selfApp = new SelfAppBuilder({
     appName: "Human-Verified Agent System",
     scope: "my-application-scope",         // Must match backend scope exactly
-    endpoint: 'https://5c65-83-144-23-154.ngrok-free.app/api/verify', // Updated ngrok URL
+    endpoint: `${backendUrl}/api/verify`, // Use current ngrok URL
     userId,
     version: 2,
     userDefinedData: "test",
@@ -117,7 +119,8 @@ export default function SelfVerificationQR() {
   const fetchVerificationResult = async () => {
     try {
       // Fetch the latest verification result from backend (no userId filter, backend picks latest)
-      const response = await fetch(`http://localhost:3001/api/latest-verification`);
+      const backendUrl = config.backend.baseUrl;
+      const response = await fetch(`${backendUrl}/api/latest-verification`);
       
       if (!response.ok) {
         throw new Error(`Failed to fetch verification: ${response.status}`);
