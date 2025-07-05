@@ -1,3 +1,5 @@
+import { MiniKitService } from './miniKitService';
+
 const API_BASE_URL = process.env.REACT_APP_API_URL || 'https://7048b6546b0f.ngrok.app/api';
 
 export interface Agent {
@@ -5,9 +7,16 @@ export interface Agent {
   name: string;
   description: string;
   avatar: string;
+  username: string;
   address: string;
   balance: string;
   lastBalanceUpdate: string;
+  registry?: {
+    isRegistered: boolean;
+    registrationTxHash: string;
+    registrationBlockNumber: number;
+    registrationTimestamp: string;
+  };
   stats: {
     totalTransactions: number;
     totalInteractions: number;
@@ -25,6 +34,7 @@ export interface CreateAgentRequest {
   name: string;
   description?: string;
   avatar?: string;
+  username?: string;
   capabilities?: string[];
 }
 
@@ -37,11 +47,22 @@ class BackendService {
   private async fetchAPI(endpoint: string, options: RequestInit = {}) {
     const url = `${API_BASE_URL}${endpoint}`;
     
+    // Prepare headers with wallet address if authenticated
+    const headers: HeadersInit = {
+      'Content-Type': 'application/json',
+      ...(options.headers || {}),
+    };
+    
+    // Add wallet address header if user is authenticated
+    if (MiniKitService.isAuthenticated()) {
+      const walletAddress = MiniKitService.getWalletAddress();
+      if (walletAddress) {
+        (headers as Record<string, string>)['x-wallet-address'] = walletAddress;
+      }
+    }
+    
     const response = await fetch(url, {
-      headers: {
-        'Content-Type': 'application/json',
-        ...options.headers,
-      },
+      headers,
       ...options,
     });
 

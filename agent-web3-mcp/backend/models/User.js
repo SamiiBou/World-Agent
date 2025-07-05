@@ -1,8 +1,8 @@
 const mongoose = require('mongoose');
 
-// Schema pour les utilisateurs
+// User schema for the application
 const userSchema = new mongoose.Schema({
-  // Informations générales
+  // General information
   walletAddress: {
     type: String,
     required: true,
@@ -10,7 +10,14 @@ const userSchema = new mongoose.Schema({
     match: /^0x[a-fA-F0-9]{40}$/
   },
   
-  // Informations World ID
+  username: {
+    type: String,
+    required: false,
+    trim: true,
+    maxlength: 50
+  },
+  
+  // World ID information - Complete proof storage
   worldIdVerification: {
     isVerified: {
       type: Boolean,
@@ -19,32 +26,51 @@ const userSchema = new mongoose.Schema({
     nullifierHash: {
       type: String,
       unique: true,
-      sparse: true  // Permet les valeurs null/undefined
+      sparse: true  // Allows null/undefined values
     },
-    proof: {
-      type: String
+    // Complete World ID proof storage
+    fullProof: {
+      proof: {
+        type: String
+      },
+      merkleRoot: {
+        type: String
+      },
+      nullifierHash: {
+        type: String
+      },
+      verificationLevel: {
+        type: String,
+        enum: ['device', 'orb']
+      }
     },
-    merkleRoot: {
-      type: String
-    },
-    verificationLevel: {
-      type: String,
-      enum: ['device', 'orb']
-    },
-    actionId: {
-      type: String,
-      default: 'poh'
+    // Verification data
+    verificationData: {
+      action: {
+        type: String,
+        default: 'poh'
+      },
+      signal: {
+        type: String
+      },
+      appId: {
+        type: String,
+        default: 'app_2129675f92413391ca585881fea09ac0'
+      },
+      walletAddress: {
+        type: String
+      }
     },
     verificationDate: {
       type: Date
     },
-    appId: {
-      type: String,
-      default: 'app_2129675f92413391ca585881fea09ac0'
+    // World ID verification result
+    verificationResult: {
+      type: mongoose.Schema.Types.Mixed
     }
   },
   
-  // Informations Self ID (pour futur usage)
+  // Self Protocol information - Complete proof storage
   selfIdVerification: {
     isVerified: {
       type: Boolean,
@@ -55,21 +81,66 @@ const userSchema = new mongoose.Schema({
       unique: true,
       sparse: true
     },
+    // Complete Self Protocol proof storage
+    fullProof: {
+      attestationId: {
+        type: Number
+      },
+      proof: {
+        a: [String],
+        b: [[String, String], [String, String]],
+        c: [String],
+        curve: String,
+        protocol: String
+      },
+      publicSignals: [String],
+      userContextData: {
+        type: String
+      }
+    },
+    // Self Protocol verification result
+    verificationResult: {
+      attestationId: Number,
+      isValidDetails: {
+        isValid: Boolean,
+        isMinimumAgeValid: Boolean,
+        isOfacValid: Boolean
+      },
+      forbiddenCountriesList: [String],
+      discloseOutput: {
+        nullifier: String,
+        forbiddenCountriesListPacked: [String],
+        issuingState: String,
+        name: String,
+        idNumber: String,
+        nationality: String,
+        dateOfBirth: String,
+        gender: String,
+        expiryDate: String,
+        minimumAge: String,
+        ofac: [Boolean]
+      },
+      userData: {
+        userIdentifier: String,
+        userDefinedData: String
+      }
+    },
     verificationDate: {
       type: Date
     },
-    verificationData: {
-      type: mongoose.Schema.Types.Mixed
+    // Verification ID for retrieval
+    verificationId: {
+      type: String
     }
   },
   
-  // Agents liés à cet utilisateur
+  // Agents linked to this user
   linkedAgents: [{
     type: mongoose.Schema.Types.ObjectId,
     ref: 'Agent'
   }],
   
-  // Statistiques
+  // Statistics
   stats: {
     totalTransactions: {
       type: Number,
@@ -96,23 +167,49 @@ const userSchema = new mongoose.Schema({
   }
 });
 
-// Middleware pour mettre à jour updatedAt
+// Middleware to update updatedAt
 userSchema.pre('save', function(next) {
   this.updatedAt = Date.now();
   next();
 });
 
-// Méthodes d'instance
-userSchema.methods.verifyWorldId = async function(verificationData) {
+// Instance methods
+userSchema.methods.verifyWorldId = async function(payload, verificationData, verificationResult) {
   this.worldIdVerification = {
     isVerified: true,
-    nullifierHash: verificationData.nullifier_hash,
-    proof: verificationData.proof,
-    merkleRoot: verificationData.merkle_root,
-    verificationLevel: verificationData.verification_level,
-    actionId: 'poh',
+    nullifierHash: payload.nullifier_hash,
+    fullProof: {
+      proof: payload.proof,
+      merkleRoot: payload.merkle_root,
+      nullifierHash: payload.nullifier_hash,
+      verificationLevel: payload.verification_level
+    },
+    verificationData: {
+      action: verificationData.action,
+      signal: verificationData.signal,
+      appId: verificationData.appId || 'app_2129675f92413391ca585881fea09ac0',
+      walletAddress: verificationData.walletAddress
+    },
     verificationDate: new Date(),
-    appId: 'app_2129675f92413391ca585881fea09ac0'
+    verificationResult: verificationResult
+  };
+  this.stats.lastActivity = Date.now();
+  return this.save();
+};
+
+userSchema.methods.verifySelfId = async function(attestationId, proof, publicSignals, userContextData, verificationResult, verificationId) {
+  this.selfIdVerification = {
+    isVerified: true,
+    userIdentifier: verificationResult.userData?.userIdentifier,
+    fullProof: {
+      attestationId: attestationId,
+      proof: proof,
+      publicSignals: publicSignals,
+      userContextData: userContextData
+    },
+    verificationResult: verificationResult,
+    verificationDate: new Date(),
+    verificationId: verificationId
   };
   this.stats.lastActivity = Date.now();
   return this.save();
@@ -130,14 +227,19 @@ userSchema.methods.getPublicInfo = function() {
   return {
     id: this._id,
     walletAddress: this.walletAddress,
+    username: this.username,
     worldIdVerification: {
       isVerified: this.worldIdVerification.isVerified,
-      verificationLevel: this.worldIdVerification.verificationLevel,
-      verificationDate: this.worldIdVerification.verificationDate
+      verificationLevel: this.worldIdVerification.fullProof?.verificationLevel,
+      verificationDate: this.worldIdVerification.verificationDate,
+      nullifierHash: this.worldIdVerification.nullifierHash
     },
     selfIdVerification: {
       isVerified: this.selfIdVerification.isVerified,
-      verificationDate: this.selfIdVerification.verificationDate
+      verificationDate: this.selfIdVerification.verificationDate,
+      userIdentifier: this.selfIdVerification.userIdentifier,
+      nationality: this.selfIdVerification.verificationResult?.discloseOutput?.nationality,
+      name: this.selfIdVerification.verificationResult?.discloseOutput?.name
     },
     linkedAgents: this.linkedAgents,
     stats: this.stats,
@@ -146,7 +248,18 @@ userSchema.methods.getPublicInfo = function() {
   };
 };
 
-// Méthodes statiques
+userSchema.methods.getFullProofs = function() {
+  return {
+    id: this._id,
+    walletAddress: this.walletAddress,
+    worldIdVerification: this.worldIdVerification,
+    selfIdVerification: this.selfIdVerification,
+    createdAt: this.createdAt,
+    updatedAt: this.updatedAt
+  };
+};
+
+// Static methods
 userSchema.statics.findByWalletAddress = function(walletAddress) {
   return this.findOne({ walletAddress: walletAddress.toLowerCase() });
 };
@@ -160,11 +273,21 @@ userSchema.statics.findVerifiedUsers = function() {
   });
 };
 
-// Index pour les performances
+userSchema.statics.findByUserIdentifier = function(userIdentifier) {
+  return this.findOne({ 'selfIdVerification.userIdentifier': userIdentifier });
+};
+
+userSchema.statics.findByUsername = function(username) {
+  return this.findOne({ username: username });
+};
+
+// Indexes for performance
 userSchema.index({ walletAddress: 1 });
+userSchema.index({ username: 1 });
 userSchema.index({ 'worldIdVerification.nullifierHash': 1 });
 userSchema.index({ 'worldIdVerification.isVerified': 1 });
 userSchema.index({ 'selfIdVerification.userIdentifier': 1 });
+userSchema.index({ 'selfIdVerification.isVerified': 1 });
 userSchema.index({ createdAt: -1 });
 
 module.exports = mongoose.model('User', userSchema); 

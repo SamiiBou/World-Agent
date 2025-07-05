@@ -1,0 +1,327 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🔍 Décodeur d'Agent - World Chain</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+        }
+        .container {
+            background: white;
+            border-radius: 15px;
+            padding: 30px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+        }
+        h1 {
+            color: #2c3e50;
+            text-align: center;
+            margin-bottom: 30px;
+            font-size: 2.5em;
+        }
+        .section {
+            margin-bottom: 30px;
+            padding: 20px;
+            background: #f8f9fa;
+            border-radius: 10px;
+            border-left: 4px solid #3498db;
+        }
+        .input-group {
+            margin-bottom: 20px;
+        }
+        label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: bold;
+            color: #34495e;
+        }
+        input[type="text"] {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #ddd;
+            border-radius: 8px;
+            font-size: 14px;
+            font-family: 'Courier New', monospace;
+        }
+        input[type="text"]:focus {
+            outline: none;
+            border-color: #3498db;
+        }
+        button {
+            background: #3498db;
+            color: white;
+            padding: 12px 25px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 16px;
+            font-weight: bold;
+            transition: background 0.3s;
+        }
+        button:hover {
+            background: #2980b9;
+        }
+        .result {
+            margin-top: 20px;
+            padding: 15px;
+            background: #e8f5e8;
+            border-radius: 8px;
+            border-left: 4px solid #27ae60;
+        }
+        .error {
+            background: #ffeaa7;
+            border-left-color: #fdcb6e;
+        }
+        .quick-links {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 20px;
+            margin-top: 30px;
+        }
+        .link-card {
+            background: #ecf0f1;
+            padding: 20px;
+            border-radius: 10px;
+            text-align: center;
+            transition: transform 0.3s;
+        }
+        .link-card:hover {
+            transform: translateY(-5px);
+        }
+        .link-card a {
+            color: #3498db;
+            text-decoration: none;
+            font-weight: bold;
+        }
+        .link-card a:hover {
+            text-decoration: underline;
+        }
+        .info-box {
+            background: #e3f2fd;
+            padding: 15px;
+            border-radius: 8px;
+            margin: 15px 0;
+            border-left: 4px solid #2196f3;
+        }
+        .code-block {
+            background: #2c3e50;
+            color: #ecf0f1;
+            padding: 15px;
+            border-radius: 8px;
+            font-family: 'Courier New', monospace;
+            font-size: 12px;
+            overflow-x: auto;
+            margin: 10px 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔍 Décodeur d'Agent - World Chain</h1>
+        
+        <div class="info-box">
+            <strong>📋 Informations de votre contrat :</strong><br>
+            <strong>Adresse :</strong> 0x2D4c6D47A5003ab2C6503B445c860245dDcDC88F<br>
+            <strong>Réseau :</strong> World Chain (Mainnet)<br>
+            <strong>Votre Transaction :</strong> 0x51a0f09971d1bca8a7f46446fd9ce2dd2920e446fb84ea4b07351dc2ac1a7b0d
+        </div>
+
+        <div class="section">
+            <h2>🔓 Décoder les données hexadécimales</h2>
+            
+            <div class="input-group">
+                <label>📝 Username (Hex) :</label>
+                <input type="text" id="usernameHex" placeholder="Ex: 4167656e74320000000000000000000000000000000000000000000000000000">
+                <button onclick="decodeUsername()">Décoder Username</button>
+                <div id="usernameResult"></div>
+            </div>
+
+            <div class="input-group">
+                <label>📍 Adresse (avec zéros) :</label>
+                <input type="text" id="addressHex" placeholder="Ex: 0000000000000000000000009882d180769329b1bf7df1c036302cd9149225b3">
+                <button onclick="decodeAddress()">Nettoyer Adresse</button>
+                <div id="addressResult"></div>
+            </div>
+
+            <div class="input-group">
+                <label>🔢 Timestamp (Hex) :</label>
+                <input type="text" id="timestampHex" placeholder="Ex: 000000000000000000000000000000000000000000000000000000006762b9a7">
+                <button onclick="decodeTimestamp()">Décoder Timestamp</button>
+                <div id="timestampResult"></div>
+            </div>
+        </div>
+
+        <div class="section">
+            <h2>🎯 Liens rapides pour votre agent</h2>
+            <div class="quick-links">
+                <div class="link-card">
+                    <h3>🔍 Voir le contrat</h3>
+                    <a href="https://worldchain-mainnet.explorer.alchemy.com/address/0x2D4c6D47A5003ab2C6503B445c860245dDcDC88F" target="_blank">
+                        Ouvrir sur World Chain Explorer
+                    </a>
+                </div>
+                <div class="link-card">
+                    <h3>📄 Votre transaction</h3>
+                    <a href="https://worldchain-mainnet.explorer.alchemy.com/tx/0x51a0f09971d1bca8a7f46446fd9ce2dd2920e446fb84ea4b07351dc2ac1a7b0d" target="_blank">
+                        Voir la transaction
+                    </a>
+                </div>
+                <div class="link-card">
+                    <h3>👤 Votre wallet</h3>
+                    <a href="https://worldchain-mainnet.explorer.alchemy.com/address/0xe336f4Ee3e5D374Db4fE63Af16A9Ec5fE06918D5" target="_blank">
+                        Voir votre wallet
+                    </a>
+                </div>
+            </div>
+        </div>
+
+        <div class="section">
+            <h2>📖 Instructions d'utilisation</h2>
+            <div class="info-box">
+                <strong>Pour voir les données de votre agent :</strong>
+                <ol>
+                    <li>Cliquez sur "Voir le contrat" ci-dessus</li>
+                    <li>Allez dans l'onglet "Read Contract"</li>
+                    <li>Utilisez la fonction <code>getAgent</code> avec l'adresse de votre agent</li>
+                    <li>Ou utilisez <code>getAgentsByOwner</code> avec votre adresse wallet</li>
+                </ol>
+            </div>
+
+            <div class="info-box">
+                <strong>Pour décoder les données hexadécimales :</strong>
+                <ol>
+                    <li>Copiez les données hex depuis le block explorer</li>
+                    <li>Collez-les dans les champs appropriés ci-dessus</li>
+                    <li>Cliquez sur "Décoder" pour voir les vraies données</li>
+                </ol>
+            </div>
+        </div>
+
+        <div class="section">
+            <h2>🔍 Exemple de données décodées</h2>
+            <div class="code-block">
+Données brutes (hex) : 4167656e74320000000000000000000000000000000000000000000000000000
+Données décodées : "Agent2"
+
+Adresse avec zéros : 0000000000000000000000009882d180769329b1bf7df1c036302cd9149225b3
+Adresse nettoyée : 0x9882d180769329b1bf7df1c036302cd9149225b3
+
+Timestamp (hex) : 000000000000000000000000000000000000000000000000000000006762b9a7
+Timestamp décodé : 1734567399 (18 décembre 2024, 20:03:19 UTC)
+            </div>
+        </div>
+    </div>
+
+    <script>
+        function decodeUsername() {
+            const hex = document.getElementById('usernameHex').value.trim();
+            const resultDiv = document.getElementById('usernameResult');
+            
+            try {
+                if (!hex) {
+                    throw new Error('Veuillez entrer une valeur hexadécimale');
+                }
+                
+                // Enlever le préfixe 0x si présent
+                const cleanHex = hex.replace(/^0x/, '');
+                
+                // Enlever les zéros à la fin (padding)
+                const trimmedHex = cleanHex.replace(/0+$/, '');
+                
+                // Vérifier que c'est bien de l'hexadécimal
+                if (!/^[0-9A-Fa-f]*$/.test(trimmedHex)) {
+                    throw new Error('Format hexadécimal invalide');
+                }
+                
+                // Convertir hex vers string
+                let text = '';
+                for (let i = 0; i < trimmedHex.length; i += 2) {
+                    const byte = trimmedHex.substr(i, 2);
+                    text += String.fromCharCode(parseInt(byte, 16));
+                }
+                
+                resultDiv.innerHTML = `<div class="result">✅ <strong>Username décodé :</strong> "${text}"</div>`;
+            } catch (error) {
+                resultDiv.innerHTML = `<div class="result error">❌ <strong>Erreur :</strong> ${error.message}</div>`;
+            }
+        }
+
+        function decodeAddress() {
+            const hex = document.getElementById('addressHex').value.trim();
+            const resultDiv = document.getElementById('addressResult');
+            
+            try {
+                if (!hex) {
+                    throw new Error('Veuillez entrer une adresse avec zéros');
+                }
+                
+                // Enlever le préfixe 0x si présent
+                let cleanHex = hex.replace(/^0x/, '');
+                
+                // Enlever les zéros au début
+                cleanHex = cleanHex.replace(/^0+/, '');
+                
+                // Ajouter le préfixe 0x
+                const address = '0x' + cleanHex;
+                
+                if (cleanHex.length !== 40) {
+                    throw new Error('Adresse invalide (doit faire 40 caractères hex)');
+                }
+                
+                resultDiv.innerHTML = `<div class="result">✅ <strong>Adresse nettoyée :</strong> ${address}</div>`;
+            } catch (error) {
+                resultDiv.innerHTML = `<div class="result error">❌ <strong>Erreur :</strong> ${error.message}</div>`;
+            }
+        }
+
+        function decodeTimestamp() {
+            const hex = document.getElementById('timestampHex').value.trim();
+            const resultDiv = document.getElementById('timestampResult');
+            
+            try {
+                if (!hex) {
+                    throw new Error('Veuillez entrer un timestamp hexadécimal');
+                }
+                
+                // Enlever le préfixe 0x si présent
+                const cleanHex = hex.replace(/^0x/, '');
+                
+                // Convertir hex vers decimal
+                const timestamp = parseInt(cleanHex, 16);
+                
+                // Convertir timestamp vers date
+                const date = new Date(timestamp * 1000);
+                const formattedDate = date.toLocaleString('fr-FR', {
+                    year: 'numeric',
+                    month: 'long',
+                    day: 'numeric',
+                    hour: '2-digit',
+                    minute: '2-digit',
+                    second: '2-digit',
+                    timeZoneName: 'short'
+                });
+                
+                resultDiv.innerHTML = `<div class="result">✅ <strong>Timestamp décodé :</strong><br>
+                    <strong>Unix:</strong> ${timestamp}<br>
+                    <strong>Date:</strong> ${formattedDate}</div>`;
+            } catch (error) {
+                resultDiv.innerHTML = `<div class="result error">❌ <strong>Erreur :</strong> ${error.message}</div>`;
+            }
+        }
+
+        // Exemple automatique au chargement
+        document.addEventListener('DOMContentLoaded', function() {
+            // Pré-remplir avec des exemples
+            document.getElementById('usernameHex').value = '4167656e74320000000000000000000000000000000000000000000000000000';
+            document.getElementById('addressHex').value = '0000000000000000000000009882d180769329b1bf7df1c036302cd9149225b3';
+            document.getElementById('timestampHex').value = '000000000000000000000000000000000000000000000000000000006762b9a7';
+        });
+    </script>
+</body>
+</html> 

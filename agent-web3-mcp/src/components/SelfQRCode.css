@@ -180,6 +180,66 @@
   }
 }
 
+.wallet-info-card {
+  background: #f0f9ff;
+  border-radius: 12px;
+  padding: 1.5rem;
+  margin: 1.5rem 0;
+  border: 2px solid #0ea5e9;
+  text-align: center;
+}
+
+.wallet-info-card h4 {
+  margin: 0 0 0.75rem 0;
+  color: #0369a1;
+  font-size: 1rem;
+  font-weight: 600;
+}
+
+.wallet-address-display {
+  font-family: 'Monaco', 'Menlo', monospace;
+  font-size: 1.1rem;
+  color: #1e40af;
+  background: white;
+  padding: 0.75rem 1rem;
+  border-radius: 8px;
+  border: 1px solid #bfdbfe;
+  margin: 0.5rem 0;
+  font-weight: 600;
+}
+
+.wallet-info-text {
+  margin: 0.75rem 0 0 0;
+  color: #0369a1;
+  font-size: 0.9rem;
+  opacity: 0.8;
+}
+
+.verification-warning {
+  background: #fef3c7;
+  border-radius: 16px;
+  padding: 3rem 2rem;
+  text-align: center;
+  border: 2px solid #f59e0b;
+}
+
+.warning-icon {
+  font-size: 4rem;
+  margin-bottom: 1.5rem;
+  display: block;
+}
+
+.verification-warning h2 {
+  color: #92400e;
+  margin-bottom: 1rem;
+}
+
+.verification-warning p {
+  color: #a16207;
+  margin-bottom: 2rem;
+  line-height: 1.6;
+}
+
 .qr-section {
   display: flex;
   justify-content: center;

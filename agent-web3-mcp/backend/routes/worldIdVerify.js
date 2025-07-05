@@ -100,14 +100,23 @@ router.post('/verify', async (req, res) => {
     if (!user) {
       console.log('Creating new user for wallet:', walletAddress);
       user = new User({
-        walletAddress: walletAddress.toLowerCase()
+        walletAddress: walletAddress.toLowerCase(),
+        username: null
       });
     } else {
       console.log('Updating existing user:', user._id);
     }
     
-    // Update user with World ID verification
-    await user.verifyWorldId(payload);
+    // Prepare verification data
+    const verificationData = {
+      action: action,
+      signal: signal,
+      appId: app_id,
+      walletAddress: walletAddress
+    };
+    
+    // Update user with World ID verification - store complete proof
+    await user.verifyWorldId(payload, verificationData, verifyRes);
     
     console.log('✅ World ID verification successful and stored!');
     
@@ -119,7 +128,8 @@ router.post('/verify', async (req, res) => {
       verificationResult: {
         nullifierHash: payload.nullifier_hash,
         verificationLevel: payload.verification_level,
-        verificationDate: new Date()
+        verificationDate: new Date(),
+        fullProofStored: true
       }
     });
     
@@ -178,6 +188,46 @@ router.get('/status/:walletAddress', async (req, res) => {
       success: false,
       message: 'Error checking verification status',
       error: error.message
+    });
+  }
+});
+
+// Get all proofs for a user by wallet address
+router.get('/user/:walletAddress/proofs', async (req, res) => {
+  try {
+    const { walletAddress } = req.params;
+    
+    // Validate wallet address format
+    if (!walletAddress.match(/^0x[a-fA-F0-9]{40}$/)) {
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid wallet address format'
+      });
+    }
+    
+    const user = await User.findByWalletAddress(walletAddress);
+    
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        message: 'User not found'
+      });
+    }
+    
+    // Return all proofs for the user
+    const fullProofs = user.getFullProofs();
+    
+    return res.status(200).json({
+      success: true,
+      message: 'User proofs retrieved successfully',
+      data: fullProofs
+    });
+    
+  } catch (error) {
+    console.error('Error fetching user proofs:', error);
+    return res.status(500).json({
+      success: false,
+      message: 'Internal server error'
     });
   }
 });

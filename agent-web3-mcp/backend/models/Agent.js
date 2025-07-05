@@ -1,8 +1,8 @@
 const mongoose = require('mongoose');
 
-// Schema pour les agents
+// Schema for agents
 const agentSchema = new mongoose.Schema({
-  // Informations générales
+  // General information
   name: {
     type: String,
     required: true,
@@ -20,7 +20,17 @@ const agentSchema = new mongoose.Schema({
     default: '🤖'
   },
   
-  // Informations World Chain
+  // Username for the agent
+  username: {
+    type: String,
+    required: true,
+    trim: true,
+    minlength: 2,
+    maxlength: 50,
+    unique: true
+  },
+  
+  // World Chain information
   worldchain: {
     address: {
       type: String,
@@ -73,7 +83,40 @@ const agentSchema = new mongoose.Schema({
     },
   },
 
-  // Statistiques
+  // Smart contract registry information
+  registry: {
+    isRegistered: {
+      type: Boolean,
+      default: false
+    },
+    registrationTxHash: {
+      type: String,
+      default: ''
+    },
+    registrationBlockNumber: {
+      type: Number,
+      default: 0
+    },
+    registrationTimestamp: {
+      type: Date
+    }
+  },
+
+  // Agent owner
+  owner: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'User',
+    required: true
+  },
+  
+  // Owner's wallet address (for easier queries)
+  ownerWalletAddress: {
+    type: String,
+    required: true,
+    match: /^0x[a-fA-F0-9]{40}$/
+  },
+
+  // Statistics
   stats: {
     totalTransactions: {
       type: Number,
@@ -113,20 +156,16 @@ const agentSchema = new mongoose.Schema({
   updatedAt: {
     type: Date,
     default: Date.now
-  },
-  createdBy: {
-    type: String,
-    default: 'system'
   }
 });
 
-// Middleware pour mettre à jour updatedAt
+// Middleware to update updatedAt
 agentSchema.pre('save', function(next) {
   this.updatedAt = Date.now();
   next();
 });
 
-// Méthodes d'instance
+// Instance methods
 agentSchema.methods.updateBalance = async function(newBalance) {
   this.worldchain.balance = newBalance;
   this.worldchain.lastBalanceUpdate = Date.now();
@@ -151,9 +190,13 @@ agentSchema.methods.getPublicInfo = function() {
     name: this.name,
     description: this.description,
     avatar: this.avatar,
+    username: this.username,
     address: this.worldchain.address,
     balance: this.worldchain.balance,
     lastBalanceUpdate: this.worldchain.lastBalanceUpdate,
+    owner: this.owner,
+    ownerWalletAddress: this.ownerWalletAddress,
+    registry: this.registry,
     stats: this.stats,
     config: {
       isActive: this.config.isActive,
@@ -164,7 +207,7 @@ agentSchema.methods.getPublicInfo = function() {
   };
 };
 
-// Méthodes statiques
+// Static methods
 agentSchema.statics.findActiveAgents = function() {
   return this.find({ 'config.isActive': true });
 };
@@ -173,9 +216,19 @@ agentSchema.statics.findByAddress = function(address) {
   return this.findOne({ 'worldchain.address': address });
 };
 
-// Index pour les performances
+agentSchema.statics.findByOwner = function(ownerId) {
+  return this.find({ 'owner': ownerId });
+};
+
+agentSchema.statics.findByOwnerWallet = function(walletAddress) {
+  return this.find({ 'ownerWalletAddress': walletAddress.toLowerCase() });
+};
+
+// Indexes for performance
 agentSchema.index({ 'worldchain.address': 1 });
 agentSchema.index({ 'config.isActive': 1 });
+agentSchema.index({ 'owner': 1 });
+agentSchema.index({ 'ownerWalletAddress': 1 });
 agentSchema.index({ createdAt: -1 });
 
 module.exports = mongoose.model('Agent', agentSchema); 

@@ -1,0 +1,256 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🔍 Décodeur d'Agent - Simple</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        h1 {
+            color: #333;
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        .input-group {
+            margin-bottom: 20px;
+        }
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+            color: #555;
+        }
+        input {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #ddd;
+            border-radius: 5px;
+            font-size: 16px;
+            box-sizing: border-box;
+        }
+        button {
+            width: 100%;
+            padding: 15px;
+            background: #007AFF;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            font-size: 16px;
+            cursor: pointer;
+            margin-top: 10px;
+        }
+        button:hover {
+            background: #0056CC;
+        }
+        button:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+        }
+        .result {
+            margin-top: 30px;
+            padding: 20px;
+            background: #f8f9fa;
+            border-radius: 5px;
+            border-left: 4px solid #007AFF;
+        }
+        .error {
+            border-left-color: #dc3545;
+            background: #f8d7da;
+        }
+        .success {
+            border-left-color: #28a745;
+            background: #d4edda;
+        }
+        .info-row {
+            margin: 10px 0;
+            padding: 10px;
+            background: white;
+            border-radius: 5px;
+        }
+        .info-label {
+            font-weight: bold;
+            color: #555;
+        }
+        .info-value {
+            color: #333;
+            word-break: break-all;
+        }
+        .links {
+            margin-top: 20px;
+            padding-top: 20px;
+            border-top: 1px solid #eee;
+        }
+        .link {
+            display: inline-block;
+            margin: 5px 10px 5px 0;
+            padding: 8px 12px;
+            background: #007AFF;
+            color: white;
+            text-decoration: none;
+            border-radius: 5px;
+            font-size: 14px;
+        }
+        .link:hover {
+            background: #0056CC;
+        }
+        .example {
+            margin-top: 20px;
+            padding: 15px;
+            background: #fff3cd;
+            border-radius: 5px;
+            border-left: 4px solid #ffc107;
+        }
+        .loading {
+            text-align: center;
+            color: #666;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔍 Décodeur d'Agent Simple</h1>
+        
+        <div class="input-group">
+            <label for="agentAddress">Adresse de l'agent:</label>
+            <input type="text" id="agentAddress" placeholder="0x9882d180769329b1bf7df1c036302cd9149225b3" />
+        </div>
+        
+        <button onclick="decodeAgent()">🔍 Décoder l'agent</button>
+        
+        <div class="example">
+            <strong>💡 Exemple:</strong> Votre agent "Agent2" → <code>0x9882d180769329b1bf7df1c036302cd9149225b3</code>
+        </div>
+        
+        <div id="result"></div>
+    </div>
+
+    <script src="https://cdn.ethers.io/lib/ethers-5.7.2.umd.min.js"></script>
+    <script>
+        const AGENT_REGISTRY_ADDRESS = '0x5B2d913ca8e5D1a185fCFeD380fDc6d2369B4fE8';
+        const RPC_URL = 'https://worldchain-mainnet.g.alchemy.com/public';
+        
+        const AGENT_REGISTRY_ABI = [
+            "function getAgent(address agentAddress) external view returns (address ownerWallet, bytes32 worldIdNullifier, bytes32 selfIdNullifier, uint256 registrationTime, bool isActive, string memory username)"
+        ];
+
+        async function decodeAgent() {
+            const agentAddress = document.getElementById('agentAddress').value.trim();
+            const resultDiv = document.getElementById('result');
+            
+            if (!agentAddress) {
+                showError('Veuillez entrer une adresse d\'agent');
+                return;
+            }
+            
+            if (!agentAddress.startsWith('0x') || agentAddress.length !== 42) {
+                showError('Adresse invalide. Format attendu: 0x...');
+                return;
+            }
+            
+            try {
+                showLoading();
+                
+                const provider = new ethers.providers.JsonRpcProvider(RPC_URL);
+                const contract = new ethers.Contract(AGENT_REGISTRY_ADDRESS, AGENT_REGISTRY_ABI, provider);
+                
+                const agentData = await contract.getAgent(agentAddress);
+                
+                showSuccess(agentData, agentAddress);
+                
+            } catch (error) {
+                console.error('Erreur:', error);
+                
+                if (error.message.includes('Agent not found') || error.message.includes('call revert')) {
+                    showError('Agent non trouvé. Vérifiez que l\'adresse est correcte et que l\'agent est enregistré.');
+                } else if (error.message.includes('invalid address')) {
+                    showError('Adresse invalide. Vérifiez le format.');
+                } else {
+                    showError('Erreur de connexion. Vérifiez votre connexion internet.');
+                }
+            }
+        }
+        
+        function showLoading() {
+            document.getElementById('result').innerHTML = `
+                <div class="result loading">
+                    <div>⏳ Récupération des données...</div>
+                </div>
+            `;
+        }
+        
+        function showError(message) {
+            document.getElementById('result').innerHTML = `
+                <div class="result error">
+                    <div>❌ <strong>Erreur:</strong> ${message}</div>
+                </div>
+            `;
+        }
+        
+        function showSuccess(agentData, agentAddress) {
+            const registrationDate = new Date(agentData.registrationTime.toNumber() * 1000).toLocaleString('fr-FR');
+            
+            document.getElementById('result').innerHTML = `
+                <div class="result success">
+                    <div><strong>✅ Agent trouvé!</strong></div>
+                    
+                    <div class="info-row">
+                        <div class="info-label">🏷️ Username:</div>
+                        <div class="info-value">${agentData.username}</div>
+                    </div>
+                    
+                    <div class="info-row">
+                        <div class="info-label">👤 Propriétaire:</div>
+                        <div class="info-value">${agentData.ownerWallet}</div>
+                    </div>
+                    
+                    <div class="info-row">
+                        <div class="info-label">🌍 World ID Nullifier:</div>
+                        <div class="info-value">${agentData.worldIdNullifier}</div>
+                    </div>
+                    
+                    <div class="info-row">
+                        <div class="info-label">🆔 Self ID Nullifier:</div>
+                        <div class="info-value">${agentData.selfIdNullifier}</div>
+                    </div>
+                    
+                    <div class="info-row">
+                        <div class="info-label">📅 Enregistré le:</div>
+                        <div class="info-value">${registrationDate}</div>
+                    </div>
+                    
+                    <div class="info-row">
+                        <div class="info-label">✅ Statut:</div>
+                        <div class="info-value">${agentData.isActive ? 'Actif' : 'Inactif'}</div>
+                    </div>
+                    
+                    <div class="links">
+                        <strong>🔗 Liens Block Explorer:</strong><br>
+                        <a href="https://worldchain-mainnet.explorer.alchemy.com/address/${agentAddress}" target="_blank" class="link">📍 Voir l'agent</a>
+                        <a href="https://worldchain-mainnet.explorer.alchemy.com/address/${agentData.ownerWallet}" target="_blank" class="link">👤 Voir le propriétaire</a>
+                        <a href="https://worldchain-mainnet.explorer.alchemy.com/address/${AGENT_REGISTRY_ADDRESS}" target="_blank" class="link">📋 Voir le contrat</a>
+                    </div>
+                </div>
+            `;
+        }
+        
+        // Permettre d'appuyer sur Enter
+        document.getElementById('agentAddress').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                decodeAgent();
+            }
+        });
+    </script>
+</body>
+</html> 

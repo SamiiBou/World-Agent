@@ -119,6 +119,56 @@ class WorldChainService {
       return '0';
     }
   }
+
+  // Get provider for smart contract interactions
+  async getProvider() {
+    console.log('🌐 WorldChainService.getProvider() called');
+    console.log('  RPC URL:', this.rpcUrl);
+    console.log('  Provider exists:', !!this.provider);
+    
+    if (!this.provider) {
+      console.log('  Creating new provider...');
+      this.provider = new ethers.JsonRpcProvider(this.rpcUrl);
+    }
+    
+    // Test the provider
+    try {
+      const blockNumber = await this.provider.getBlockNumber();
+      console.log('  Provider test successful, block number:', blockNumber);
+    } catch (error) {
+      console.error('  Provider test failed:', error);
+      throw error;
+    }
+    
+    return this.provider;
+  }
+
+  // Get signer for smart contract interactions
+  async getSigner() {
+    console.log('✍️ WorldChainService.getSigner() called');
+    console.log('  Private key set:', process.env.WORLD_CHAIN_PRIVATE_KEY ? 'YES' : 'NO');
+    
+    if (!process.env.WORLD_CHAIN_PRIVATE_KEY) {
+      throw new Error('WORLD_CHAIN_PRIVATE_KEY environment variable is not set');
+    }
+    
+    const provider = await this.getProvider();
+    const signer = new ethers.Wallet(process.env.WORLD_CHAIN_PRIVATE_KEY, provider);
+    
+    console.log('  Signer created successfully');
+    console.log('  Signer address:', await signer.getAddress());
+    
+    // Test the signer
+    try {
+      const balance = await provider.getBalance(signer.address);
+      console.log('  Signer balance:', ethers.formatEther(balance), 'ETH');
+    } catch (error) {
+      console.error('  Signer test failed:', error);
+      throw error;
+    }
+    
+    return signer;
+  }
 }
 
 module.exports = new WorldChainService(); 
