@@ -4,16 +4,27 @@ import { v4 as uuidv4 } from 'uuid';
 import './SelfQRCode.css';
 import VerificationStorage from '../utils/verificationStorage';
 import { config } from '../config/environment';
+import MiniKitService from '../services/miniKitService';
 
 export default function SelfVerificationQR() {
   const [userId, setUserId] = useState<string | null>(null);
   const [verificationStatus, setVerificationStatus] = useState<'pending' | 'success' | 'error'>('pending');
   const [verificationData, setVerificationData] = useState<any>(null);
+  const [walletAddress, setWalletAddress] = useState<string>('');
 
   useEffect(() => {
     // Generate a user ID when the component mounts
     const newUserId = uuidv4();
     setUserId(newUserId);
+    
+    // Get wallet address from authentication state
+    const authState = MiniKitService.getAuthState();
+    if (authState.walletAddress) {
+      setWalletAddress(authState.walletAddress);
+      console.log('📱 Wallet address for Self verification:', authState.walletAddress);
+    } else {
+      console.warn('⚠️ No wallet address found in auth state for Self verification');
+    }
   }, []);
 
   if (!userId) return <div>Loading Self ID...</div>;
@@ -29,7 +40,7 @@ export default function SelfVerificationQR() {
           <div className="success-icon">✅</div>
           <h2 className="success-title">Verification Successful!</h2>
           <p className="success-message">
-            Your identity has been successfully verified using Self ID.
+            Your identity has been successfully verified using Self ID and linked to your wallet address.
             You can now connect your identity with your agents for enhanced security and capabilities.
           </p>
           
@@ -42,6 +53,14 @@ export default function SelfVerificationQR() {
                   {new Date(verificationData.verificationTimestamp).toLocaleString()}
                 </span>
               </div>
+              {walletAddress && (
+                <div className="detail-item">
+                  <span className="detail-label">Linked Wallet:</span>
+                  <span className="detail-value primary-id">
+                    {walletAddress.substring(0, 6)}...{walletAddress.substring(-4)}
+                  </span>
+                </div>
+              )}
               {verificationData.selfUserId && (
                 <div className="detail-item">
                   <span className="detail-label">Unique ID:</span>
@@ -90,13 +109,21 @@ export default function SelfVerificationQR() {
 
   // Create the SelfApp configuration according to documentation  
   const backendUrl = config.backend.baseUrl;
+  
+  // Include wallet address in the endpoint URL as a query parameter
+  const verificationEndpoint = walletAddress 
+    ? `${backendUrl}/api/self/verify?walletAddress=${encodeURIComponent(walletAddress)}`
+    : `${backendUrl}/api/self/verify`;
+  
+  console.log('🔗 Self verification endpoint:', verificationEndpoint);
+  
   const selfApp = new SelfAppBuilder({
     appName: "Human-Verified Agent System",
     scope: "my-application-scope",         // Must match backend scope exactly
-    endpoint: `${backendUrl}/api/verify`, // Use current ngrok URL
+    endpoint: verificationEndpoint,        // Use correct Self verification endpoint with wallet address
     userId,
     version: 2,
-    userDefinedData: "test",
+    userDefinedData: walletAddress || "no-wallet", // Include wallet address in user data as backup
     disclosures: {                         // Must match backend config exactly
       minimumAge: 18,                      // Must match backend (using minimumAge not olderThan)
       excludedCountries: ['IRN', 'PRK'],   // Must match backend
@@ -108,8 +135,9 @@ export default function SelfVerificationQR() {
   }).build();
 
   const handleSuccess = (data?: any) => {
-    console.log("✅ Verification successful!");
+    console.log("✅ Self verification successful!");
     console.log("Verification data:", data);
+    console.log("Wallet address used:", walletAddress);
     
     // The Self QR SDK success callback doesn't contain the backend verification data
     // We need to fetch the most recent verification result from our backend
@@ -120,7 +148,7 @@ export default function SelfVerificationQR() {
     try {
       // Fetch the latest verification result from backend (no userId filter, backend picks latest)
       const backendUrl = config.backend.baseUrl;
-      const response = await fetch(`${backendUrl}/api/latest-verification`);
+      const response = await fetch(`${backendUrl}/api/self/latest-verification`);
       
       if (!response.ok) {
         throw new Error(`Failed to fetch verification: ${response.status}`);
@@ -147,7 +175,8 @@ export default function SelfVerificationQR() {
         
         console.log('✅ Verification data fetched and stored:', {
           uniqueId,
-          timestamp: data.verification.timestamp
+          timestamp: data.verification.timestamp,
+          walletAddress: walletAddress
         });
       } else {
         throw new Error('Invalid verification response');
@@ -178,6 +207,30 @@ export default function SelfVerificationQR() {
     setVerificationStatus('error');
   };
 
+  // Show warning if no wallet address
+  if (!walletAddress) {
+    return (
+      <div className="verification-container p-6">
+        <div className="qr-card">
+          <div className="verification-warning">
+            <div className="warning-icon">⚠️</div>
+            <h2>Wallet Required</h2>
+            <p>
+              Please connect your wallet first before verifying your identity with Self ID.
+              Your verification needs to be linked to your wallet address.
+            </p>
+            <button 
+              className="continue-button"
+              onClick={() => window.location.href = '/wallet-auth'}
+            >
+              Connect Wallet First
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="verification-container p-6 qr-section">
       <div className="qr-card">
@@ -185,6 +238,17 @@ export default function SelfVerificationQR() {
         <p className="qr-subtitle">
           Scan this QR code with the <strong>Self</strong> app
         </p>
+        
+        {/* Show wallet info */}
+        <div className="wallet-info-card">
+          <h4>Linked Wallet Address:</h4>
+          <div className="wallet-address-display">
+            {walletAddress.substring(0, 6)}...{walletAddress.substring(-4)}
+          </div>
+          <p className="wallet-info-text">
+            Your verification will be linked to this wallet address
+          </p>
+        </div>
 
         <div className="qr-wrapper">
           <SelfQRcodeWrapper
@@ -204,6 +268,7 @@ export default function SelfVerificationQR() {
             <li><span>Minimum Age:</span> 18</li>
             <li><span>Excluded Countries:</span> Iran, North Korea</li>
             <li><span>OFAC Check:</span> Enabled</li>
+            <li><span>Wallet Linking:</span> Enabled</li>
           </ul>
         </div>
       </div>

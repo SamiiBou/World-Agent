@@ -8,6 +8,7 @@
    } = require('@selfxyz/core');
    const { generateUserContextData } = require('../utils/generateUserContextData');
    const SelfId = require('../models/SelfId');
+   const User = require('../models/User');
 
    // Simple in-memory store for recent verifications (in production, use Redis or database)
    const recentVerifications = new Map();
@@ -36,10 +37,11 @@
    allowedIds.set(1, true); // Passports
    allowedIds.set(2, true); // EU ID cards
 
+   // Use testnet mode (false) instead of mainnet (true) to avoid InvalidRoot errors
    const verifier = new SelfBackendVerifier(
   'my-application-scope',
   'https://7048b6546b0f.ngrok.app/api/verify',
-  false,
+  false,  // Changed from true to false - this enables testnet mode
   allowedIds,
   configStorage,
   'uuid'  // User identifier type
@@ -49,10 +51,14 @@
      try {
        console.log('=== SELF VERIFICATION REQUEST ===');
        console.log('Full req.body:', JSON.stringify(req.body, null, 2));
+       console.log('Query params:', req.query);
        
-       // Extract fields from request body
+       // Extract fields from request body and query parameters
        const { proof, publicSignals, userDefinedData, userContextData: receivedUserContextData, userId } = req.body;
        let { pubSignals } = req.body;
+       
+       // Get wallet address from query parameter (preferred) or request body (fallback)
+       const walletAddress = req.query.walletAddress || req.body.walletAddress;
        
        // Handle field name variations - Self sends "publicSignals" but SDK might expect "pubSignals"
        if (!pubSignals && publicSignals) {
@@ -76,12 +82,21 @@
            receivedFields: Object.keys(req.body)
          });
        }
+       
+       // Validate wallet address if provided
+       if (walletAddress && !walletAddress.match(/^0x[a-fA-F0-9]{40}$/)) {
+         return res.status(400).json({
+           success: false,
+           message: 'Invalid wallet address format'
+         });
+       }
 
        console.log('Received from Self app:');
        console.log('- proof:', proof ? 'present' : 'missing');
        console.log('- pubSignals length:', pubSignals?.length || 0);
        console.log('- userDefinedData:', userDefinedData);
        console.log('- userId:', userId);
+       console.log('- walletAddress:', walletAddress);
        console.log('- receivedUserContextData:', receivedUserContextData);
        
        // Define attestationId (1 for passport, 2 for EU ID card)
@@ -164,10 +179,36 @@
          userId: userId,
          userIdentifier: result.userData?.userIdentifier,
          userData: result.userData,
-         discloseOutput: result.discloseOutput
+         discloseOutput: result.discloseOutput,
+         walletAddress: walletAddress
        };
        
        recentVerifications.set(verificationId, verificationRecord);
+       
+       // Link verification to user by wallet address if provided
+       if (walletAddress) {
+         try {
+           console.log('Linking Self ID verification to user with wallet:', walletAddress);
+           let user = await User.findByWalletAddress(walletAddress);
+           
+           if (!user) {
+             console.log('User not found for wallet address:', walletAddress);
+             console.log('Creating new user for Self ID verification...');
+             user = new User({
+               walletAddress: walletAddress.toLowerCase(),
+               username: null
+             });
+           }
+           
+           // Use the new verifySelfId method to store complete proof
+           await user.verifySelfId(attestationId, proof, pubSignals, userContextData, result, verificationId);
+           
+           console.log('✅ Self ID verification linked to user successfully!');
+           
+         } catch (userErr) {
+           console.error('Error linking Self ID verification to user:', userErr);
+         }
+       }
        
        // Clean up old verifications
        const now = Date.now();
@@ -186,7 +227,9 @@
          verificationResult: result,
          verificationTimestamp: Date.now(),
          verificationId: verificationId, // Include ID for frontend retrieval
-         userIdentifier: result.userData?.userIdentifier // Include userIdentifier directly
+         userIdentifier: result.userData?.userIdentifier, // Include userIdentifier directly
+         walletAddress: walletAddress,
+         fullProofStored: !!walletAddress // Indicate if full proof was stored in user model
        });
        
      } catch (error) {
@@ -253,21 +296,27 @@
      try {
        const { userId } = req.query;
        
-       // Find the most recent verification for this user
+       // Find the most recent verification (for this user if userId provided, otherwise globally)
        let latestVerification = null;
        let latestTimestamp = 0;
        
        for (const [id, record] of recentVerifications.entries()) {
-         if (record.userId === userId && record.timestamp > latestTimestamp) {
+         // If userId is provided, filter by userId. Otherwise, get the latest across all users
+         const matchesUser = !userId || record.userId === userId;
+         
+         if (matchesUser && record.timestamp > latestTimestamp) {
            latestVerification = record;
            latestTimestamp = record.timestamp;
          }
        }
        
        if (!latestVerification) {
+         const message = userId 
+           ? 'No recent verification found for this user'
+           : 'No recent verifications found';
          return res.status(404).json({
            success: false,
-           message: 'No recent verification found for this user'
+           message: message
          });
        }
        
@@ -297,6 +346,46 @@
        
      } catch (error) {
        console.error('Error fetching latest verification:', error);
+       return res.status(500).json({
+         success: false,
+         message: 'Internal server error'
+       });
+     }
+   });
+
+   // Endpoint to get all proofs for a user by wallet address
+   router.get('/user/:walletAddress/proofs', async (req, res) => {
+     try {
+       const { walletAddress } = req.params;
+       
+       // Validate wallet address format
+       if (!walletAddress.match(/^0x[a-fA-F0-9]{40}$/)) {
+         return res.status(400).json({
+           success: false,
+           message: 'Invalid wallet address format'
+         });
+       }
+       
+       const user = await User.findByWalletAddress(walletAddress);
+       
+       if (!user) {
+         return res.status(404).json({
+           success: false,
+           message: 'User not found'
+         });
+       }
+       
+       // Return all proofs for the user
+       const fullProofs = user.getFullProofs();
+       
+       return res.status(200).json({
+         success: true,
+         message: 'User proofs retrieved successfully',
+         data: fullProofs
+       });
+       
+     } catch (error) {
+       console.error('Error fetching user proofs:', error);
        return res.status(500).json({
          success: false,
          message: 'Internal server error'

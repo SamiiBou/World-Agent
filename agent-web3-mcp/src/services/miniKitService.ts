@@ -165,6 +165,60 @@ export class MiniKitService {
     try {
       console.log('🔐 Starting wallet authentication...');
       
+      // === COMPREHENSIVE WALLET & DEVICE INFO LOGGING ===
+      console.log('📱 === MINIKIT COMPREHENSIVE INFO ===');
+      
+      // 1. MiniKit Installation & Version Info
+      console.log('🔧 MiniKit Installation Status:', this.isInstalled());
+      console.log('🔧 MiniKit App ID:', MiniKit.appId);
+      
+      // 2. Complete User Information
+      console.log('👤 === COMPLETE USER INFO ===');
+      console.log('👤 Full User Object:', JSON.stringify(MiniKit.user, null, 2));
+      if (MiniKit.user) {
+        console.log('👤 User Wallet Address:', MiniKit.user.walletAddress);
+        console.log('👤 User Username:', MiniKit.user.username);
+        console.log('👤 User Profile Picture URL:', MiniKit.user.profilePictureUrl);
+        console.log('👤 User Permissions:', JSON.stringify(MiniKit.user.permissions, null, 2));
+        console.log('👤 User Opted Into Optional Analytics:', MiniKit.user.optedIntoOptionalAnalytics);
+        console.log('👤 User World App Version (deprecated):', MiniKit.user.worldAppVersion);
+        console.log('👤 User Device OS (deprecated):', MiniKit.user.deviceOS);
+      }
+      
+      // 3. Device Properties
+      console.log('📱 === DEVICE PROPERTIES ===');
+      console.log('📱 Full Device Properties:', JSON.stringify(MiniKit.deviceProperties, null, 2));
+      if (MiniKit.deviceProperties) {
+        console.log('📱 Safe Area Insets:', JSON.stringify(MiniKit.deviceProperties.safeAreaInsets, null, 2));
+        console.log('📱 Device OS:', MiniKit.deviceProperties.deviceOS);
+        console.log('📱 World App Version:', MiniKit.deviceProperties.worldAppVersion);
+      }
+      
+      // 4. Try to get additional user info by address
+      if (MiniKit.user?.walletAddress) {
+        try {
+          console.log('👤 === ADDITIONAL USER INFO BY ADDRESS ===');
+          const userByAddress = await MiniKit.getUserByAddress(MiniKit.user.walletAddress);
+          console.log('👤 User by Address:', JSON.stringify(userByAddress, null, 2));
+          
+          const userInfo = await MiniKit.getUserInfo(MiniKit.user.walletAddress);
+          console.log('👤 User Info:', JSON.stringify(userInfo, null, 2));
+        } catch (userInfoError) {
+          console.log('👤 Could not fetch additional user info:', userInfoError);
+        }
+      }
+      
+      // 5. Try to get user by username if available
+      if (MiniKit.user?.username) {
+        try {
+          console.log('👤 === USER INFO BY USERNAME ===');
+          const userByUsername = await MiniKit.getUserByUsername(MiniKit.user.username);
+          console.log('👤 User by Username:', JSON.stringify(userByUsername, null, 2));
+        } catch (usernameError) {
+          console.log('👤 Could not fetch user by username:', usernameError);
+        }
+      }
+      
       // First, check if MiniKit is installed
       if (!this.isInstalled()) {
         console.log('MiniKit not detected, attempting to install...');
@@ -204,46 +258,33 @@ export class MiniKitService {
       let nonceResponse;
       try {
         nonceResponse = await fetch(nonceUrl);
-        console.log('Nonce response status:', nonceResponse.status);
-        console.log('Nonce response headers:', Object.fromEntries(nonceResponse.headers.entries()));
+        if (!nonceResponse.ok) {
+          throw new Error(`Failed to fetch nonce: ${nonceResponse.status} ${nonceResponse.statusText}`);
+        }
       } catch (fetchError) {
-        console.error('❌ Fetch error:', fetchError);
-        throw new Error(`Network error when fetching nonce: ${fetchError instanceof Error ? fetchError.message : 'Unknown error'}`);
+        console.error('Failed to fetch nonce:', fetchError);
+        return {
+          success: false,
+          error: `Failed to connect to backend: ${fetchError instanceof Error ? fetchError.message : 'Unknown error'}`
+        };
       }
-      
-      if (!nonceResponse.ok) {
-        const responseText = await nonceResponse.text();
-        console.error('❌ Non-OK response:', responseText);
-        throw new Error(`Failed to get nonce from server: ${nonceResponse.status} ${nonceResponse.statusText} - ${responseText}`);
-      }
-      
-      let nonceData;
-      try {
-        const responseText = await nonceResponse.text();
-        console.log('Raw response text:', responseText);
-        nonceData = JSON.parse(responseText);
-      } catch (parseError) {
-        console.error('❌ JSON parse error:', parseError);
-        throw new Error(`Invalid JSON response from nonce endpoint: ${parseError instanceof Error ? parseError.message : 'Unknown parse error'}`);
-      }
-      
+
+      const nonceData = await nonceResponse.json();
       const nonce = nonceData.nonce;
+      console.log('✅ Got nonce:', nonce ? `${nonce.substring(0, 8)}...` : 'null');
 
-      console.log('Got nonce:', nonce);
-
-      // Validate nonce format
-      if (!nonce || typeof nonce !== 'string' || nonce.length < 8) {
-        throw new Error('Invalid nonce format received from server');
+      if (!nonce) {
+        return {
+          success: false,
+          error: 'Failed to get authentication nonce from backend'
+        };
       }
 
-      // 2. Prepare wallet auth parameters
-      const now = new Date();
+      // 2. Prepare wallet auth input
       const walletAuthInput: WalletAuthInput = {
         nonce: nonce,
-        requestId: '0', // Optional
-        expirationTime: new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000), // 7 days
-        notBefore: new Date(now.getTime() - 24 * 60 * 60 * 1000), // 24 hours ago
-        statement: 'Sign in to World Agent App to access your decentralized AI assistant.',
+        statement: 'Sign in to World Agent',
+        requestId: `world-agent-${Date.now()}`
       };
 
       console.log('🔧 Prepared wallet auth input:', {
@@ -258,6 +299,27 @@ export class MiniKitService {
         const result = await MiniKit.commandsAsync.walletAuth(walletAuthInput);
         commandPayload = result.commandPayload;
         finalPayload = result.finalPayload;
+        
+        // === COMPREHENSIVE AUTHENTICATION RESULT LOGGING ===
+        console.log('🎉 === COMPLETE AUTHENTICATION RESULT ===');
+        console.log('🎉 Full Command Payload:', JSON.stringify(commandPayload, null, 2));
+        console.log('🎉 Full Final Payload:', JSON.stringify(finalPayload, null, 2));
+        
+        // Detailed breakdown of the authentication payload
+        if (finalPayload) {
+          console.log('🎉 === AUTHENTICATION PAYLOAD BREAKDOWN ===');
+          console.log('🎉 Status:', (finalPayload as any).status);
+          console.log('🎉 Message:', (finalPayload as any).message);
+          console.log('🎉 Signature:', (finalPayload as any).signature);
+          console.log('🎉 Address:', (finalPayload as any).address);
+          console.log('🎉 Version:', (finalPayload as any).version);
+          
+          // Check for error details
+          if ((finalPayload as any).error_code) {
+            console.log('❌ Error Code:', (finalPayload as any).error_code);
+            console.log('❌ Error Details:', (finalPayload as any).details);
+          }
+        }
         
         console.log('MiniKit wallet auth successful:', {
           commandStatus: (commandPayload as any)?.status,
@@ -348,26 +410,32 @@ export class MiniKitService {
         walletAddress: walletAddress
       };
 
-      console.log('👤 User info:', {
-        username: userInfo.username,
-        address: userInfo.walletAddress?.substring(0, 6) + '...' + userInfo.walletAddress?.substring(-4)
-      });
+      console.log('👤 === FINAL USER INFO COMPILATION ===');
+      console.log('👤 Final User Info:', JSON.stringify(userInfo, null, 2));
+      console.log('👤 Username:', userInfo.username);
+      console.log('👤 Wallet Address:', userInfo.walletAddress);
+      console.log('👤 Address (formatted):', userInfo.walletAddress?.substring(0, 6) + '...' + userInfo.walletAddress?.substring(-4));
 
       // 8. Complete authentication with backend
       console.log('🔐 Completing authentication with backend...');
       const completeSiweUrl = `${backendUrl}/api/complete-siwe`;
       console.log('Making complete-siwe request to:', completeSiweUrl);
       
+      // Log the complete data being sent to backend
+      const backendPayload = {
+        payload: finalPayload,
+        nonce: nonce,
+        userInfo: userInfo
+      };
+      console.log('📤 === COMPLETE BACKEND PAYLOAD ===');
+      console.log('📤 Backend Payload:', JSON.stringify(backendPayload, null, 2));
+      
       const authResponse = await fetch(completeSiweUrl, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({
-          payload: finalPayload,
-          nonce: nonce,
-          userInfo: userInfo
-        }),
+        body: JSON.stringify(backendPayload),
       });
 
       if (!authResponse.ok) {
@@ -375,7 +443,8 @@ export class MiniKitService {
       }
 
       const authResult = await authResponse.json();
-      console.log('✅ Backend authentication result:', authResult);
+      console.log('✅ === COMPLETE BACKEND AUTHENTICATION RESULT ===');
+      console.log('✅ Backend Response:', JSON.stringify(authResult, null, 2));
 
       if (authResult.status === 'success') {
         // Update local auth state
@@ -385,6 +454,14 @@ export class MiniKitService {
           username: authResult.username,
           timestamp: authResult.timestamp
         });
+
+        // Final success logging
+        console.log('🎊 === AUTHENTICATION SUCCESS SUMMARY ===');
+        console.log('🎊 Success: true');
+        console.log('🎊 Wallet Address:', authResult.walletAddress);
+        console.log('🎊 Username:', authResult.username);
+        console.log('🎊 Timestamp:', authResult.timestamp);
+        console.log('🎊 Authentication completed successfully!');
 
         return {
           success: true,
@@ -412,10 +489,21 @@ export class MiniKitService {
   /**
    * Sign out and clear authentication state
    */
-  static signOut() {
-    this.setAuthState({
+  static signOut(): void {
+    console.log('🔐 Signing out user...');
+    
+    // Clear authentication state
+    this.authState = {
       isAuthenticated: false
-    });
+    };
+    
+    // Clear any stored tokens or session data
+    // In a production app, you might want to:
+    // - Clear localStorage/sessionStorage
+    // - Invalidate server-side sessions
+    // - Clear any cached user data
+    
+    console.log('✅ User signed out successfully');
   }
 
   /**

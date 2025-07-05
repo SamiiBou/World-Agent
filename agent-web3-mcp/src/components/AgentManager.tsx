@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { backendService, Agent, CreateAgentRequest } from '../services/backendService';
+import { MiniKitService } from '../services/miniKitService';
 import './AgentManager.css';
 
 interface AgentManagerProps {
@@ -18,12 +19,14 @@ export const AgentManager: React.FC<AgentManagerProps> = ({
   const [error, setError] = useState<string | null>(null);
   const [isCreating, setIsCreating] = useState(false);
   const [backendConnected, setBackendConnected] = useState(false);
+  const [currentUsername, setCurrentUsername] = useState<string | null>(null);
   
   // Agent creation form
   const [createForm, setCreateForm] = useState<CreateAgentRequest>({
     name: '',
     description: '',
-    avatar: '🤖'
+    avatar: '🤖',
+    username: '' // This will be automatically filled from the connected user
   });
 
   // Available avatars
@@ -32,7 +35,16 @@ export const AgentManager: React.FC<AgentManagerProps> = ({
   useEffect(() => {
     checkBackendConnection();
     loadAgents();
+    loadCurrentUsername();
   }, []);
+
+  const loadCurrentUsername = () => {
+    // Get the current user's username from MiniKit
+    if (MiniKitService.isAuthenticated()) {
+      const username = MiniKitService.getUsername();
+      setCurrentUsername(username || null);
+    }
+  };
 
   const checkBackendConnection = async () => {
     try {
@@ -62,17 +74,27 @@ export const AgentManager: React.FC<AgentManagerProps> = ({
       return;
     }
 
+    // Username will be automatically taken from the connected user
+    // Remove the username validation since it's auto-filled
+
     setIsCreating(true);
     setError('');
 
     try {
-      const response = await backendService.createAgent(createForm);
+      // Username will be automatically retrieved from the connected user by the backend
+      const response = await backendService.createAgent({
+        name: createForm.name,
+        description: createForm.description,
+        avatar: createForm.avatar
+        // Don't send username - the backend will use the connected user's username
+      });
       
       // Reset form
       setCreateForm({
         name: '',
         description: '',
-        avatar: '🤖'
+        avatar: '🤖',
+        username: ''
       });
       
       // Automatically select the new agent
@@ -126,6 +148,15 @@ export const AgentManager: React.FC<AgentManagerProps> = ({
       <div className="agent-creation">
         <h3>🔧 Create New Agent</h3>
         
+        {/* Show current username info */}
+        {currentUsername && (
+          <div className="username-info">
+            <span className="username-label">👤 Agent Username:</span>
+            <span className="username-value">@{currentUsername}</span>
+            <span className="username-note">(automatically generated from your wallet - made unique if needed)</span>
+          </div>
+        )}
+        
         <div className="form-group">
           <label>Agent Name *</label>
           <input
@@ -136,6 +167,8 @@ export const AgentManager: React.FC<AgentManagerProps> = ({
             disabled={isCreating}
           />
         </div>
+        
+        {/* Remove the username input field - it will be automatically taken from the connected user */}
         
         <div className="form-group">
           <label>Avatar</label>
@@ -196,6 +229,7 @@ export const AgentManager: React.FC<AgentManagerProps> = ({
                   <span className="agent-avatar">{agent.avatar}</span>
                   <div className="agent-info">
                     <h4>{agent.name}</h4>
+                    <p className="agent-username">@{agent.username}</p>
                     <p className="agent-description">{agent.description || 'No description'}</p>
                   </div>
                 </div>
@@ -236,6 +270,7 @@ export const AgentManager: React.FC<AgentManagerProps> = ({
               <span className="agent-avatar-large">{selectedAgent.avatar}</span>
               <div>
                 <h4>{selectedAgent.name}</h4>
+                <p className="agent-username">@{selectedAgent.username}</p>
                 <p>{selectedAgent.description}</p>
                 <div className="agent-address">
                   <span>📍 {selectedAgent.address}</span>
@@ -246,6 +281,17 @@ export const AgentManager: React.FC<AgentManagerProps> = ({
                     🔍 Explorer
                   </button>
                 </div>
+                {selectedAgent.registry && selectedAgent.registry.isRegistered && selectedAgent.registry.registrationTxHash && (
+                  <div className="registry-info">
+                    <span>🔗 Registered on blockchain</span>
+                    <button
+                      onClick={() => window.open(`https://worldchain-mainnet.explorer.alchemy.com/tx/${selectedAgent.registry!.registrationTxHash}`, '_blank')}
+                      className="explorer-button"
+                    >
+                      📄 View Transaction
+                    </button>
+                  </div>
+                )}
               </div>
             </div>
             
