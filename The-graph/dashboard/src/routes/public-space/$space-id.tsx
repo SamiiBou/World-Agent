@@ -1,4 +1,4 @@
-import { WorldID, SelfID, VCProof, TokenHolding, TransferEvents } from '@/schema';
+import { Account, WorldID, SelfID, VCProof, TokenHolding, TransferEvents } from '@/schema';
 import {
   HypergraphSpaceProvider,
   useQuery,
@@ -8,6 +8,7 @@ import {
 } from '@graphprotocol/hypergraph-react';
 import { createFileRoute, Link } from '@tanstack/react-router';
 import { mapping } from '@/mapping';
+import { useState } from 'react';
 
 export const Route = createFileRoute('/public-space/$space-id')({
   component: RouteComponent,
@@ -26,7 +27,12 @@ function RouteComponent() {
 function PublicSpace({ spaceId }: { spaceId: string }) {
   const { ready, name } = useSpace({ mode: 'public' });
 
+  // Add sorting state
+  const [sortBy, setSortBy] = useState<'name' | 'type' | 'recent'>('name');
+  const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc');
+
   // Query all entity types
+  const { data: accounts, refetch: refetchAccounts } = useQuery(Account, { mode: 'public' });
   const { data: worldIDs, refetch: refetchWorldIDs } = useQuery(WorldID, { mode: 'public' });
   const { data: selfIDs, refetch: refetchSelfIDs } = useQuery(SelfID, { mode: 'public' });
   const { data: vcProofs, refetch: refetchVCProofs } = useQuery(VCProof, { mode: 'public' });
@@ -37,6 +43,7 @@ function PublicSpace({ spaceId }: { spaceId: string }) {
 
   // Combine all entities into a single array with type information
   const allEntities = [
+    ...(accounts?.map((entity) => ({ ...entity, entityType: 'Account' })) || []),
     ...(worldIDs?.map((entity) => ({ ...entity, entityType: 'WorldID' })) || []),
     ...(selfIDs?.map((entity) => ({ ...entity, entityType: 'SelfID' })) || []),
     ...(vcProofs?.map((entity) => ({ ...entity, entityType: 'VCProof' })) || []),
@@ -44,8 +51,36 @@ function PublicSpace({ spaceId }: { spaceId: string }) {
     ...(transferEvents?.map((entity) => ({ ...entity, entityType: 'TransferEvents' })) || []),
   ];
 
+  // Sort entities based on current sort settings
+  const sortedEntities = [...allEntities].sort((a, b) => {
+    let compareValue = 0;
+
+    switch (sortBy) {
+      case 'name':
+        const nameA = getEntityDisplayName(a).toLowerCase();
+        const nameB = getEntityDisplayName(b).toLowerCase();
+        compareValue = nameA.localeCompare(nameB);
+        break;
+      case 'type':
+        compareValue = a.entityType.localeCompare(b.entityType);
+        break;
+      case 'recent':
+        // Sort by entity creation order (index-based for now)
+        compareValue = 0; // Keep original order for recent
+        break;
+      default:
+        compareValue = 0;
+    }
+
+    return sortOrder === 'asc' ? compareValue : -compareValue;
+  });
+
   // Entity type configurations
   const entityTypes = {
+    Account: {
+      icon: '👤',
+      color: 'from-indigo-500 to-blue-500',
+    },
     WorldID: {
       icon: '🌍',
       color: 'from-blue-500 to-cyan-500',
@@ -68,29 +103,13 @@ function PublicSpace({ spaceId }: { spaceId: string }) {
     },
   };
 
-  // Debug space state
-  console.log('=== PUBLIC SPACE STATE DEBUG ===');
-  console.log('Space ID:', spaceId);
-  console.log('Space ready:', ready);
-  console.log('Space name:', name);
-  console.log('All entities:', allEntities);
-
   const handleUnsetEntity = async (entity: any) => {
-    console.log('=== PUBLIC SPACE UNSET DEBUG ===');
-    console.log('Attempting to unset public entity:', entity);
-    console.log('Entity ID:', (entity as any).id);
-    console.log('Space ID:', spaceId);
-    console.log('Space ready:', ready);
-    console.log('Full entity object:', JSON.stringify(entity, null, 2));
-
     if (
       confirm(
         `Are you sure you want to unset this ${entity.entityType}? This will remove the entity from the public space but preserve it in the blockchain.`,
       )
     ) {
       try {
-        console.log('User confirmed unset, preparing operations...');
-
         // Get all property IDs for the entity type from mapping
         const entityMapping = mapping[entity.entityType as keyof typeof mapping];
         if (!entityMapping?.properties) {
@@ -98,7 +117,6 @@ function PublicSpace({ spaceId }: { spaceId: string }) {
         }
 
         const propertyIds = Object.values(entityMapping.properties);
-        console.log('Property IDs to unset:', propertyIds);
 
         // Create unset operations
         const ops = [
@@ -111,15 +129,11 @@ function PublicSpace({ spaceId }: { spaceId: string }) {
           },
         ];
 
-        console.log('Unset operations:', ops);
-
         // Get smart session client
         const smartSessionClient = await getSmartSessionClient();
         if (!smartSessionClient) {
           throw new Error('Missing smartSessionClient');
         }
-
-        console.log('Publishing unset operations...');
 
         // Publish the unset operations
         const result = await publishOps({
@@ -129,29 +143,19 @@ function PublicSpace({ spaceId }: { spaceId: string }) {
           walletClient: smartSessionClient,
         });
 
-        console.log('Unset operations published successfully:', result);
-
         // Refresh the data after unset
         setTimeout(() => {
-          console.log('Refreshing entities after unset...');
           refetchAllEntities();
         }, 1000);
       } catch (error) {
         console.error('Error unsetting entity:', error);
-        console.error('Error details:', {
-          message: (error as any)?.message,
-          stack: (error as any)?.stack,
-          name: (error as any)?.name,
-        });
         alert(`Error unsetting entity: ${(error as any)?.message || 'Unknown error'}`);
       }
-    } else {
-      console.log('User cancelled unset');
     }
   };
 
   const refetchAllEntities = () => {
-    console.log('Manually refreshing all entities...');
+    refetchAccounts();
     refetchWorldIDs();
     refetchSelfIDs();
     refetchVCProofs();
@@ -161,6 +165,8 @@ function PublicSpace({ spaceId }: { spaceId: string }) {
 
   const getEntityDisplayName = (entity: any) => {
     switch (entity.entityType) {
+      case 'Account':
+        return entity.name || 'Account';
       case 'WorldID':
         return entity.address?.slice(0, 8) + '...' || 'WorldID';
       case 'SelfID':
@@ -178,6 +184,8 @@ function PublicSpace({ spaceId }: { spaceId: string }) {
 
   const getEntityDescription = (entity: any) => {
     switch (entity.entityType) {
+      case 'Account':
+        return `Account profile: ${entity.description || entity.name}`;
       case 'WorldID':
         return `World ID verification for address ${entity.address}`;
       case 'SelfID':
@@ -253,35 +261,232 @@ function PublicSpace({ spaceId }: { spaceId: string }) {
           </nav>
         </div>
 
+        {/* Debug Panel for Publishing Issues */}
+        <div className="bg-yellow-900/20 backdrop-blur-sm rounded-xl p-6 border border-yellow-500/30 mb-8">
+          <h3 className="text-lg font-semibold text-yellow-400 mb-4">🔍 Enhanced Debug Panel - Schema & Data Issues</h3>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+            <div className="bg-blue-900/20 border border-blue-500/30 rounded-lg p-4">
+              <h4 className="text-blue-300 font-semibold text-sm mb-2">📊 Current Status</h4>
+              <div className="text-blue-200 text-xs space-y-1">
+                <p>• Space Ready: {ready ? '✅' : '❌'}</p>
+                <p>• Space Name: {name || 'Loading...'}</p>
+                <p>• Space ID: {spaceId}</p>
+                <p>• Total Entities: {allEntities.length}</p>
+                <p>• Last Updated: {new Date().toLocaleTimeString()}</p>
+              </div>
+            </div>
+
+            <div className="bg-purple-900/20 border border-purple-500/30 rounded-lg p-4">
+              <h4 className="text-purple-300 font-semibold text-sm mb-2">🔧 Schema Validation</h4>
+              <div className="text-purple-200 text-xs space-y-1">
+                <p>• Account Mapping: {mapping.Account ? '✅' : '❌'}</p>
+                <p>• Account Type ID: {mapping.Account?.typeIds[0] ? '✅' : '❌'}</p>
+                <p>• Account Properties: {Object.keys(mapping.Account?.properties || {}).length}/3</p>
+                <p>• All Mappings: {Object.keys(mapping).length}/6</p>
+              </div>
+            </div>
+          </div>
+
+          <div className="bg-red-900/20 border border-red-500/30 rounded-lg p-4 mb-4">
+            <h4 className="text-red-300 font-semibold text-sm mb-2">🚨 Entity Count by Type</h4>
+            <div className="text-red-200 text-xs space-y-1">
+              <p>• Account: {accounts?.length || 0} entities</p>
+              <p>• WorldID: {worldIDs?.length || 0} entities</p>
+              <p>• SelfID: {selfIDs?.length || 0} entities</p>
+              <p>• VCProof: {vcProofs?.length || 0} entities</p>
+              <p>• TokenHolding: {tokenHoldings?.length || 0} entities</p>
+              <p>• TransferEvents: {transferEvents?.length || 0} entities</p>
+            </div>
+          </div>
+
+          <div className="bg-orange-900/20 border border-orange-500/30 rounded-lg p-4 mb-4">
+            <h4 className="text-orange-300 font-semibold text-sm mb-2">⚠️ If Your Data Isn't Showing</h4>
+            <div className="text-orange-200 text-xs space-y-1">
+              <p>• Data might still be indexing (wait 1-2 minutes)</p>
+              <p>• Schema changes might have created version conflicts</p>
+              <p>• Old data might not match new Account schema</p>
+              <p>• Check browser console for schema mismatch warnings</p>
+              <p>• Try republishing from private space with new schema</p>
+              <p>
+                • <strong>Verify you're in the correct public space!</strong>
+              </p>
+            </div>
+          </div>
+
+          <div className="flex flex-wrap gap-2">
+            <button
+              onClick={() => {
+                console.log('=== COMPREHENSIVE DEBUG DUMP ===');
+                console.log('Space ID:', spaceId);
+                console.log('Space ready:', ready);
+                console.log('Space name:', name);
+                console.log('All entities:', allEntities);
+                console.log('Entity counts:', {
+                  accounts: accounts?.length || 0,
+                  worldIDs: worldIDs?.length || 0,
+                  selfIDs: selfIDs?.length || 0,
+                  vcProofs: vcProofs?.length || 0,
+                  tokenHoldings: tokenHoldings?.length || 0,
+                  transferEvents: transferEvents?.length || 0,
+                });
+                console.log('Schema mapping:', mapping);
+                console.log('Raw query results:', {
+                  accounts,
+                  worldIDs,
+                  selfIDs,
+                  vcProofs,
+                  tokenHoldings,
+                  transferEvents,
+                });
+              }}
+              className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm font-semibold transition-colors"
+            >
+              Comprehensive Debug
+            </button>
+            <button
+              onClick={() => {
+                console.log('=== SCHEMA VALIDATION DEBUG ===');
+                console.log('Account Class:', Account);
+                console.log('Account Mapping:', mapping.Account);
+                console.log(
+                  'Mapping validation:',
+                  Object.keys(mapping).map((key) => {
+                    const entityMapping = mapping[key as keyof typeof mapping];
+                    return {
+                      entity: key,
+                      hasTypeIds: !!entityMapping.typeIds,
+                      hasProperties: !!entityMapping.properties,
+                      propertyCount: entityMapping.properties ? Object.keys(entityMapping.properties).length : 0,
+                    };
+                  }),
+                );
+              }}
+              className="px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-lg text-sm font-semibold transition-colors"
+            >
+              Schema Validation
+            </button>
+            <button
+              onClick={() => {
+                console.log('=== PUBLIC SPACE VERIFICATION ===');
+                console.log('Current Space ID:', spaceId);
+                console.log('Current Space Name:', name);
+
+                // Check if this space ID matches what you expect
+                console.log('Expected space from your private space publishing target?');
+                console.log(
+                  'If you have access to private space, check which public space you selected for publishing',
+                );
+                console.log('Go to your private space and check the dropdown in "Publish to Public Space" section');
+                console.log('The selected space should match this space ID:', spaceId);
+
+                alert(
+                  `Current Space:\nID: ${spaceId}\nName: ${name}\n\nCheck console for verification steps. Make sure this matches the space you published to!`,
+                );
+              }}
+              className="px-4 py-2 bg-yellow-600 hover:bg-yellow-700 text-white rounded-lg text-sm font-semibold transition-colors"
+            >
+              Verify Space
+            </button>
+            <button
+              onClick={() => {
+                refetchAllEntities();
+                alert('Refreshing data... Please wait 30 seconds and check again.');
+              }}
+              className="px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg text-sm font-semibold transition-colors"
+            >
+              Force Refresh
+            </button>
+            <button
+              onClick={() => {
+                window.location.reload();
+              }}
+              className="px-4 py-2 bg-gray-600 hover:bg-gray-700 text-white rounded-lg text-sm font-semibold transition-colors"
+            >
+              Hard Refresh Page
+            </button>
+          </div>
+        </div>
+
         {/* Entities Grid */}
         <div className="bg-white/5 backdrop-blur-sm rounded-xl p-8 border border-white/10">
           <div className="flex items-center justify-between mb-8">
             <h2 className="text-2xl font-bold text-white">All Entities</h2>
-            <div className="text-gray-400 text-sm">{allEntities.length} entities available</div>
+            <div className="flex items-center space-x-4">
+              <div className="text-gray-400 text-sm">{allEntities.length} entities available</div>
+
+              {/* Schema Status Indicator */}
+              <div className="flex items-center space-x-2">
+                <div className={`w-3 h-3 rounded-full ${allEntities.length > 0 ? 'bg-green-400' : 'bg-red-400'}`}></div>
+                <span className="text-sm text-gray-400">{allEntities.length > 0 ? 'Data Available' : 'No Data'}</span>
+              </div>
+
+              {/* Sorting Controls */}
+              <div className="flex items-center space-x-2">
+                <select
+                  value={sortBy}
+                  onChange={(e) => setSortBy(e.target.value as 'name' | 'type' | 'recent')}
+                  className="px-3 py-2 bg-white/10 border border-white/20 rounded-lg text-white text-sm focus:outline-none focus:border-blue-400"
+                >
+                  <option value="name">Sort by Name</option>
+                  <option value="type">Sort by Type</option>
+                  <option value="recent">Sort by Recent</option>
+                </select>
+
+                <button
+                  onClick={() => setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc')}
+                  className="px-3 py-2 bg-white/10 border border-white/20 rounded-lg text-white text-sm hover:bg-white/20 transition-colors flex items-center space-x-1"
+                >
+                  <span>{sortOrder === 'asc' ? '↑' : '↓'}</span>
+                  <span>{sortOrder === 'asc' ? 'Asc' : 'Desc'}</span>
+                </button>
+              </div>
+            </div>
           </div>
 
           {allEntities.length === 0 ? (
             <div className="text-center py-16">
               <div className="text-gray-400 text-6xl mb-6">📊</div>
               <h3 className="text-2xl font-semibold text-gray-300 mb-4">No Entities Available</h3>
-              <p className="text-gray-400 mb-8 max-w-md mx-auto">
-                This public space doesn't have any entities yet. Check back later or explore other spaces.
-              </p>
-              <Link
-                to="/"
-                className="bg-blue-600 hover:bg-blue-700 text-white px-8 py-3 rounded-lg font-semibold transition-colors"
-              >
-                Explore Other Spaces
-              </Link>
+              <div className="text-gray-400 mb-8 max-w-md mx-auto space-y-2">
+                <p>This could be due to:</p>
+                <ul className="text-sm space-y-1">
+                  <li>• Schema changes requiring republishing</li>
+                  <li>• Data still indexing after schema update</li>
+                  <li>• Version mismatch between old and new entities</li>
+                  <li>• No data has been published to this space yet</li>
+                </ul>
+              </div>
+              <div className="flex justify-center space-x-4">
+                <Link
+                  to="/"
+                  className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-lg font-semibold transition-colors"
+                >
+                  Explore Other Spaces
+                </Link>
+              </div>
             </div>
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {allEntities.map((entity, index) => {
+              {sortedEntities.map((entity, index) => {
                 const config = entityTypes[entity.entityType as keyof typeof entityTypes];
+                const entityMapping = mapping[entity.entityType as keyof typeof mapping];
+                const hasSchemaIssues =
+                  entityMapping &&
+                  entityMapping.properties &&
+                  Object.keys(entityMapping.properties || {}).some(
+                    (prop) =>
+                      !(entity as any).hasOwnProperty(prop) ||
+                      (entity as any)[prop] === undefined ||
+                      (entity as any)[prop] === null,
+                  );
+
                 return (
                   <div
                     key={index}
-                    className="bg-white/5 rounded-xl p-6 border border-white/10 hover:bg-white/10 transition-all duration-200 group"
+                    className={`bg-white/5 rounded-xl p-6 border border-white/10 hover:bg-white/10 transition-all duration-200 group ${
+                      hasSchemaIssues ? 'border-yellow-500/50' : ''
+                    }`}
                   >
                     <div className="flex items-start justify-between mb-4">
                       <div className="flex items-center">
@@ -295,6 +500,7 @@ function PublicSpace({ spaceId }: { spaceId: string }) {
                             {getEntityDisplayName(entity)}
                           </h3>
                           <p className="text-gray-400 text-sm">{entity.entityType}</p>
+                          {hasSchemaIssues && <p className="text-yellow-400 text-xs">⚠️ Schema issues detected</p>}
                         </div>
                       </div>
                       <div className="text-green-400 text-sm">Public</div>
@@ -324,8 +530,22 @@ function PublicSpace({ spaceId }: { spaceId: string }) {
                     <div className="flex justify-between items-center pt-4 border-t border-white/10">
                       <div className="text-gray-500 text-sm">Entity #{index + 1}</div>
                       <div className="flex space-x-2">
-                        <button className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm font-semibold transition-colors">
-                          Explore
+                        <button
+                          onClick={() => {
+                            console.log('=== ENTITY DEBUG ===');
+                            console.log('Entity:', entity);
+                            console.log('Entity Type:', entity.entityType);
+                            console.log('Entity Mapping:', entityMapping);
+                            console.log('Schema Issues:', hasSchemaIssues);
+                            console.log('Expected Properties:', Object.keys(entityMapping?.properties || {}));
+                            console.log(
+                              'Actual Properties:',
+                              Object.keys(entity as any).filter((k) => k !== 'entityType'),
+                            );
+                          }}
+                          className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm font-semibold transition-colors"
+                        >
+                          Debug Entity
                         </button>
                         <button
                           onClick={() => handleUnsetEntity(entity)}
@@ -341,68 +561,6 @@ function PublicSpace({ spaceId }: { spaceId: string }) {
               })}
             </div>
           )}
-        </div>
-
-        {/* Info Sections */}
-        <div className="mt-16 grid grid-cols-1 md:grid-cols-3 gap-8">
-          <div className="bg-white/5 backdrop-blur-sm rounded-xl p-6 border border-blue-500/20">
-            <h3 className="text-xl font-semibold text-white mb-4">🌍 Community Driven</h3>
-            <p className="text-gray-300 text-sm mb-4">
-              This public space is maintained by the community. All entities are openly accessible and verified.
-            </p>
-            <div className="flex items-center text-blue-400 text-sm">
-              <span className="w-2 h-2 bg-blue-400 rounded-full mr-2"></span>
-              Transparent & Open
-            </div>
-          </div>
-
-          <div className="bg-white/5 backdrop-blur-sm rounded-xl p-6 border border-green-500/20">
-            <h3 className="text-xl font-semibold text-white mb-4">⚡ Real-time Access</h3>
-            <p className="text-gray-300 text-sm mb-4">
-              Access entities instantly without any setup. All data is live and continuously updated.
-            </p>
-            <div className="flex items-center text-green-400 text-sm">
-              <span className="w-2 h-2 bg-green-400 rounded-full mr-2"></span>
-              Always Up-to-date
-            </div>
-          </div>
-
-          <div className="bg-white/5 backdrop-blur-sm rounded-xl p-6 border border-purple-500/20">
-            <h3 className="text-xl font-semibold text-white mb-4">📊 Entity Types</h3>
-            <div className="space-y-2">
-              {Object.entries(entityTypes).map(([type, config]) => (
-                <div key={type} className="flex items-center text-gray-300">
-                  <span className="text-lg mr-2">{config.icon}</span>
-                  <span>{type}</span>
-                </div>
-              ))}
-            </div>
-          </div>
-        </div>
-
-        {/* Call to Action */}
-        <div className="mt-16 text-center">
-          <div className="bg-gradient-to-r from-blue-600/20 to-purple-600/20 rounded-xl p-8 border border-blue-500/30">
-            <h3 className="text-2xl font-bold text-white mb-4">Want to Contribute?</h3>
-            <p className="text-gray-300 mb-6 max-w-2xl mx-auto">
-              Join the community by creating your own private space and publishing entities to public spaces. Help build
-              the decentralized knowledge network.
-            </p>
-            <div className="flex justify-center gap-4">
-              <Link
-                to="/private-spaces"
-                className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white px-8 py-3 rounded-lg font-semibold transition-all duration-200 transform hover:scale-105"
-              >
-                Create Private Space
-              </Link>
-              <Link
-                to="/"
-                className="border border-blue-600 hover:border-blue-500 text-blue-300 px-8 py-3 rounded-lg font-semibold transition-colors"
-              >
-                Explore More Spaces
-              </Link>
-            </div>
-          </div>
         </div>
       </div>
     </div>

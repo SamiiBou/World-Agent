@@ -1,4 +1,4 @@
-import { WorldID, SelfID, VCProof, TokenHolding, TransferEvents } from '@/schema';
+import { Account, WorldID, SelfID, VCProof, TokenHolding, TransferEvents } from '@/schema';
 import {
   HypergraphSpaceProvider,
   preparePublish,
@@ -9,9 +9,10 @@ import {
   useSpace,
   useSpaces,
   useDeleteEntity,
+  useHypergraphAuth,
 } from '@graphprotocol/hypergraph-react';
 import { createFileRoute } from '@tanstack/react-router';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { mapping } from '@/mapping';
 
 export const Route = createFileRoute('/private-space/$space-id')({
@@ -30,8 +31,53 @@ function RouteComponent() {
 
 function PrivateSpace({ spaceId }: { spaceId: string }) {
   const { name, ready } = useSpace({ mode: 'private' });
+  const { authenticated, identity } = useHypergraphAuth();
+
+  // Add sorting state
+  const [sortBy, setSortBy] = useState<'name' | 'type' | 'recent'>('name');
+  const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc');
+
+  // Add authentication debugging state
+  const [authDebug, setAuthDebug] = useState<{
+    smartSessionClient: string | null;
+    error: string | null;
+    loading: boolean;
+  }>({
+    smartSessionClient: null,
+    error: null,
+    loading: true,
+  });
+
+  // Test smart session client
+  const { getSmartSessionClient } = useHypergraphApp();
+
+  // Test authentication on mount
+  useEffect(() => {
+    const testAuth = async () => {
+      try {
+        console.log('Testing authentication...');
+        const client = await getSmartSessionClient();
+        console.log('Smart session client result:', client);
+        setAuthDebug({
+          smartSessionClient: client ? 'Available' : 'Not available',
+          error: null,
+          loading: false,
+        });
+      } catch (error) {
+        console.error('Authentication test error:', error);
+        setAuthDebug({
+          smartSessionClient: null,
+          error: error instanceof Error ? error.message : 'Unknown error',
+          loading: false,
+        });
+      }
+    };
+
+    testAuth();
+  }, [getSmartSessionClient]);
 
   // Query all entity types - Updated to include refetch functions
+  const { data: accounts, refetch: refetchAccounts } = useQuery(Account, { mode: 'private' });
   const { data: worldIDs, refetch: refetchWorldIDs } = useQuery(WorldID, { mode: 'private' });
   const { data: selfIDs, refetch: refetchSelfIDs } = useQuery(SelfID, { mode: 'private' });
   const { data: vcProofs, refetch: refetchVCProofs } = useQuery(VCProof, { mode: 'private' });
@@ -42,12 +88,14 @@ function PrivateSpace({ spaceId }: { spaceId: string }) {
   const [selectedSpace, setSelectedSpace] = useState<string>('');
   const [isAddingEntity, setIsAddingEntity] = useState(false);
   const [entityData, setEntityData] = useState<{
+    Account: { name: string; description: string; address: string };
     WorldID: { address: string; timestamp: string; type: string };
     SelfID: { address: string; did: string };
     VCProof: { proofHash: string; issuer: string; type: string };
     TokenHolding: { address: string; token: string; amount: string; network: string };
     TransferEvents: { from: string; to: string; token: string; amount: string; timestamp: string };
   }>({
+    Account: { name: '', description: '', address: '' },
     WorldID: { address: '', timestamp: '', type: '' },
     SelfID: { address: '', did: '' },
     VCProof: { proofHash: '', issuer: '', type: '' },
@@ -55,18 +103,29 @@ function PrivateSpace({ spaceId }: { spaceId: string }) {
     TransferEvents: { from: '', to: '', token: '', amount: '', timestamp: '' },
   });
 
+  // Add JSON parser state
+  const [jsonInput, setJsonInput] = useState('');
+  const [parseError, setParseError] = useState('');
+  const [parseSuccess, setParseSuccess] = useState('');
+
   // Create entity hooks for all types
+  const createAccount = useCreateEntity(Account);
   const createWorldID = useCreateEntity(WorldID);
   const createSelfID = useCreateEntity(SelfID);
   const createVCProof = useCreateEntity(VCProof);
   const createTokenHolding = useCreateEntity(TokenHolding);
   const createTransferEvents = useCreateEntity(TransferEvents);
 
-  const { getSmartSessionClient } = useHypergraphApp();
   const deleteEntity = useDeleteEntity({ space: spaceId });
+
+  // Define getEntityDisplayName function here, before it's used in sorting
+  const getEntityDisplayName = (entity: any) => {
+    return entity.entityType || 'Entity';
+  };
 
   // Combine all entities into a single array with type information
   const allEntities = [
+    ...(accounts?.map((entity) => ({ ...entity, entityType: 'Account' })) || []),
     ...(worldIDs?.map((entity) => ({ ...entity, entityType: 'WorldID' })) || []),
     ...(selfIDs?.map((entity) => ({ ...entity, entityType: 'SelfID' })) || []),
     ...(vcProofs?.map((entity) => ({ ...entity, entityType: 'VCProof' })) || []),
@@ -74,11 +133,36 @@ function PrivateSpace({ spaceId }: { spaceId: string }) {
     ...(transferEvents?.map((entity) => ({ ...entity, entityType: 'TransferEvents' })) || []),
   ];
 
+  // Sort entities based on current sort settings
+  const sortedEntities = [...allEntities].sort((a, b) => {
+    let compareValue = 0;
+
+    switch (sortBy) {
+      case 'name':
+        const nameA = getEntityDisplayName(a).toLowerCase();
+        const nameB = getEntityDisplayName(b).toLowerCase();
+        compareValue = nameA.localeCompare(nameB);
+        break;
+      case 'type':
+        compareValue = a.entityType.localeCompare(b.entityType);
+        break;
+      case 'recent':
+        // Sort by entity creation order (index-based for now)
+        compareValue = 0; // Keep original order for recent
+        break;
+      default:
+        compareValue = 0;
+    }
+
+    return sortOrder === 'asc' ? compareValue : -compareValue;
+  });
+
   // Add refetch function for all entities
   const refetchAllEntities = () => {
     console.log('=== REFETCH DEBUG START ===');
     console.log('Refreshing all private entities...');
     console.log('Current entity counts:', {
+      accounts: accounts?.length || 0,
       worldIDs: worldIDs?.length || 0,
       selfIDs: selfIDs?.length || 0,
       vcProofs: vcProofs?.length || 0,
@@ -89,6 +173,7 @@ function PrivateSpace({ spaceId }: { spaceId: string }) {
 
     try {
       console.log('Calling refetch functions...');
+      refetchAccounts();
       refetchWorldIDs();
       refetchSelfIDs();
       refetchVCProofs();
@@ -108,6 +193,9 @@ function PrivateSpace({ spaceId }: { spaceId: string }) {
     spaceId,
     ready,
     name,
+    authenticated,
+    identity,
+    accounts: { count: accounts?.length || 0, data: accounts },
     worldIDs: { count: worldIDs?.length || 0, data: worldIDs },
     selfIDs: { count: selfIDs?.length || 0, data: selfIDs },
     vcProofs: { count: vcProofs?.length || 0, data: vcProofs },
@@ -118,6 +206,17 @@ function PrivateSpace({ spaceId }: { spaceId: string }) {
 
   // Entity type configurations
   const entityTypes = {
+    Account: {
+      fields: [
+        { name: 'name', type: 'text', placeholder: 'Enter account name...', label: 'Account Name' },
+        { name: 'description', type: 'text', placeholder: 'Enter account description...', label: 'Description' },
+        { name: 'address', type: 'text', placeholder: 'Enter account address...', label: 'Address' },
+      ],
+      icon: '👤',
+      color: 'from-indigo-500 to-blue-500',
+      title: 'Account',
+      description: 'Create and manage account profiles',
+    },
     WorldID: {
       fields: [
         { name: 'address', type: 'text', placeholder: 'Enter wallet address...', label: 'Wallet Address' },
@@ -177,6 +276,27 @@ function PrivateSpace({ spaceId }: { spaceId: string }) {
     },
   };
 
+  // Check authentication first
+  if (!authenticated) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-gray-900 via-purple-900 to-indigo-900 flex items-center justify-center">
+        <div className="text-center">
+          <div className="w-16 h-16 bg-gradient-to-r from-red-400 to-pink-400 rounded-full flex items-center justify-center mx-auto mb-4">
+            <span className="text-white text-2xl">🔐</span>
+          </div>
+          <div className="text-white text-xl font-semibold">Authentication Required</div>
+          <div className="text-gray-400 mt-2">Please connect your wallet to access private spaces</div>
+          <button
+            onClick={() => (window.location.href = '/')}
+            className="mt-4 bg-purple-600 hover:bg-purple-700 text-white px-6 py-3 rounded-lg font-semibold transition-colors"
+          >
+            Go to Home
+          </button>
+        </div>
+      </div>
+    );
+  }
+
   if (!ready) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-gray-900 via-purple-900 to-indigo-900 flex items-center justify-center">
@@ -186,6 +306,10 @@ function PrivateSpace({ spaceId }: { spaceId: string }) {
           </div>
           <div className="text-white text-xl font-semibold">Loading Private Space...</div>
           <div className="text-gray-400 mt-2">Please wait while we secure your connection</div>
+          <div className="text-gray-500 mt-4 text-sm">
+            Auth Status: {authenticated ? '✅ Authenticated' : '❌ Not Authenticated'}
+          </div>
+          <div className="text-gray-500 mt-1 text-sm">Identity: {identity ? '✅ Available' : '❌ Missing'}</div>
         </div>
       </div>
     );
@@ -194,136 +318,104 @@ function PrivateSpace({ spaceId }: { spaceId: string }) {
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
 
-    console.log('=== ENTITY CREATION DEBUG START ===');
-    console.log('Space ID:', spaceId);
-    console.log('Space ready:', ready);
-    console.log('Entity data:', entityData);
+    console.log('=== ENTITY CREATION DEBUG ===');
+    console.log('Current entityData:', entityData);
 
-    let createdCount = 0;
-    const entitiesToCreate: Array<{ type: string; data: Record<string, any> }> = [];
+    const createdEntities: string[] = [];
 
-    // Check each entity type and create if all required fields are filled
-    Object.entries(entityTypes).forEach(([entityType, config]) => {
-      const typeKey = entityType as keyof typeof entityData;
-      const data = entityData[typeKey];
-
-      // Check if all fields for this entity type are filled
-      const allFieldsFilled = config.fields.every((field) => {
-        const value = (data as any)[field.name];
-        return value && value.trim() !== '';
-      });
-
-      if (allFieldsFilled) {
-        // Convert string values to appropriate types
-        const processedData = config.fields.reduce(
-          (acc, field) => {
-            const value = (data as any)[field.name];
-            acc[field.name] = field.type === 'number' ? Number(value) : value;
-            return acc;
-          },
-          {} as Record<string, any>,
-        );
-
-        entitiesToCreate.push({ type: entityType, data: processedData });
-        console.log(`Prepared ${entityType} for creation:`, processedData);
-      }
-    });
-
-    if (entitiesToCreate.length === 0) {
-      alert('Please fill in all required fields for at least one entity type');
-      return;
-    }
-
-    console.log('Entities to create:', entitiesToCreate);
-
-    // Create entities based on filled forms with proper error handling
     try {
-      for (const { type, data } of entitiesToCreate) {
-        console.log(`Creating ${type} with data:`, data);
+      // Check each entity type for filled data and create entities
+      for (const [entityType, data] of Object.entries(entityData)) {
+        const config = entityTypes[entityType as keyof typeof entityTypes];
 
-        try {
-          let result;
-          switch (type) {
-            case 'WorldID':
-              console.log('Calling createWorldID...');
-              result = await createWorldID(data as { address: string; timestamp: number; type: string });
-              console.log('WorldID creation result:', result);
-              break;
-            case 'SelfID':
-              console.log('Calling createSelfID...');
-              result = await createSelfID(data as { address: string; did: string });
-              console.log('SelfID creation result:', result);
-              break;
-            case 'VCProof':
-              console.log('Calling createVCProof...');
-              result = await createVCProof(data as { proofHash: string; issuer: string; type: string });
-              console.log('VCProof creation result:', result);
-              break;
-            case 'TokenHolding':
-              console.log('Calling createTokenHolding...');
-              result = await createTokenHolding(
-                data as { address: string; token: string; amount: number; network: string },
-              );
-              console.log('TokenHolding creation result:', result);
-              break;
-            case 'TransferEvents':
-              console.log('Calling createTransferEvents...');
-              result = await createTransferEvents(
-                data as { from: string; to: string; token: string; amount: number; timestamp: number },
-              );
-              console.log('TransferEvents creation result:', result);
-              break;
-            default:
-              console.error('Unknown entity type:', type);
-              continue;
+        // Check if this entity type has any filled data
+        const hasFilledData = config.fields.some((field) => {
+          const value = (data as any)[field.name];
+          return value && value.toString().trim() !== '';
+        });
+
+        if (hasFilledData) {
+          console.log(`Creating ${entityType} with data:`, data);
+
+          try {
+            switch (entityType) {
+              case 'Account':
+                await createAccount(data as any);
+                break;
+              case 'WorldID':
+                await createWorldID({
+                  address: (data as any).address,
+                  timestamp: parseInt((data as any).timestamp) || 0,
+                  type: (data as any).type,
+                });
+                break;
+              case 'SelfID':
+                await createSelfID(data as any);
+                break;
+              case 'VCProof':
+                await createVCProof(data as any);
+                break;
+              case 'TokenHolding':
+                await createTokenHolding({
+                  address: (data as any).address,
+                  token: (data as any).token,
+                  amount: parseFloat((data as any).amount) || 0,
+                  network: (data as any).network,
+                });
+                break;
+              case 'TransferEvents':
+                await createTransferEvents({
+                  from: (data as any).from,
+                  to: (data as any).to,
+                  token: (data as any).token,
+                  amount: parseFloat((data as any).amount) || 0,
+                  timestamp: parseInt((data as any).timestamp) || 0,
+                });
+                break;
+              default:
+                console.warn(`Unknown entity type: ${entityType}`);
+                continue;
+            }
+
+            createdEntities.push(entityType);
+            console.log(`Successfully created ${entityType}`);
+          } catch (entityError) {
+            console.error(`Error creating ${entityType}:`, entityError);
+            throw new Error(`Failed to create ${entityType}: ${(entityError as any)?.message || 'Unknown error'}`);
           }
-
-          createdCount++;
-          console.log(`Successfully created ${type}. Total created: ${createdCount}`);
-        } catch (entityError) {
-          console.error(`Error creating ${type}:`, entityError);
-          console.error('Entity creation error details:', {
-            message: (entityError as any)?.message,
-            stack: (entityError as any)?.stack,
-            name: (entityError as any)?.name,
-          });
-          alert(`Failed to create ${type}: ${(entityError as any)?.message || 'Unknown error'}`);
         }
       }
 
-      if (createdCount > 0) {
-        // Reset form
-        setEntityData({
-          WorldID: { address: '', timestamp: '', type: '' },
-          SelfID: { address: '', did: '' },
-          VCProof: { proofHash: '', issuer: '', type: '' },
-          TokenHolding: { address: '', token: '', amount: '', network: '' },
-          TransferEvents: { from: '', to: '', token: '', amount: '', timestamp: '' },
-        });
-        setIsAddingEntity(false);
-
-        alert(`Successfully created ${createdCount} entities!`);
-
-        // Refetch all entities to update the UI
-        console.log('Waiting before refetch...');
-        setTimeout(() => {
-          console.log('Refreshing entities after creation...');
-          refetchAllEntities();
-        }, 2000); // Increased timeout to allow for network propagation
-      } else {
-        alert('No entities were created successfully. Please check the console for errors.');
+      if (createdEntities.length === 0) {
+        alert('Please fill in at least one entity form before submitting.');
+        return;
       }
+
+      console.log(`Successfully created ${createdEntities.length} entities:`, createdEntities);
+      alert(`Successfully created ${createdEntities.length} entities: ${createdEntities.join(', ')}`);
+
+      // Reset form and close modal
+      setEntityData({
+        Account: { name: '', description: '', address: '' },
+        WorldID: { address: '', timestamp: '', type: '' },
+        SelfID: { address: '', did: '' },
+        VCProof: { proofHash: '', issuer: '', type: '' },
+        TokenHolding: { address: '', token: '', amount: '', network: '' },
+        TransferEvents: { from: '', to: '', token: '', amount: '', timestamp: '' },
+      });
+      setIsAddingEntity(false);
+
+      // Refresh entities
+      setTimeout(() => refetchAllEntities(), 1000);
     } catch (error) {
-      console.error('Unexpected error during entity creation:', error);
+      console.error('Error creating entities:', error);
       console.error('Error details:', {
         message: (error as any)?.message,
         stack: (error as any)?.stack,
         name: (error as any)?.name,
       });
-      alert(`Unexpected error: ${(error as any)?.message || 'Unknown error'}`);
+      alert(`Error creating entities: ${(error as any)?.message || 'Unknown error'}`);
     }
-
-    console.log('=== ENTITY CREATION DEBUG END ===');
   };
 
   const updateEntityData = (entityType: keyof typeof entityData, fieldName: string, value: string) => {
@@ -334,6 +426,125 @@ function PrivateSpace({ spaceId }: { spaceId: string }) {
         [fieldName]: value,
       },
     }));
+  };
+
+  // Add JSON parser function
+  const parseJsonData = () => {
+    setParseError('');
+    setParseSuccess('');
+
+    if (!jsonInput.trim()) {
+      setParseError('Please enter JSON data to parse');
+      return;
+    }
+
+    try {
+      const parsed = JSON.parse(jsonInput.trim());
+      console.log('Parsed JSON:', parsed);
+
+      // Handle array of entities or single entity
+      const entities = Array.isArray(parsed) ? parsed : [parsed];
+      let parsedCount = 0;
+
+      // Create a copy of current entity data
+      const newEntityData = { ...entityData };
+
+      entities.forEach((entity) => {
+        // Try to determine entity type and map fields
+        if (entity.entityType && entityTypes[entity.entityType as keyof typeof entityTypes]) {
+          // Direct mapping with entityType specified
+          const entityType = entity.entityType as keyof typeof entityData;
+          const config = entityTypes[entityType];
+
+          const mappedData: Record<string, string> = {};
+          config.fields.forEach((field) => {
+            if (entity[field.name] !== undefined) {
+              mappedData[field.name] = String(entity[field.name]);
+            }
+          });
+
+          if (Object.keys(mappedData).length > 0) {
+            newEntityData[entityType] = { ...newEntityData[entityType], ...mappedData } as any;
+            parsedCount++;
+          }
+        } else {
+          // Smart mapping based on field names
+          Object.entries(entityTypes).forEach(([entityType, config]) => {
+            const typeKey = entityType as keyof typeof entityData;
+            const mappedData: Record<string, string> = {};
+            let matchedFields = 0;
+
+            config.fields.forEach((field) => {
+              if (entity[field.name] !== undefined) {
+                mappedData[field.name] = String(entity[field.name]);
+                matchedFields++;
+              }
+            });
+
+            // If we matched at least half the fields, consider it a match for this entity type
+            if (matchedFields >= Math.ceil(config.fields.length / 2)) {
+              newEntityData[typeKey] = { ...newEntityData[typeKey], ...mappedData } as any;
+              parsedCount++;
+            }
+          });
+        }
+      });
+
+      if (parsedCount > 0) {
+        setEntityData(newEntityData);
+        setParseSuccess(`Successfully parsed and populated ${parsedCount} entity type(s)!`);
+        setJsonInput(''); // Clear the input after successful parse
+      } else {
+        setParseError('No matching entity fields found in the JSON data');
+      }
+    } catch (error) {
+      setParseError(`Invalid JSON format: ${(error as Error).message}`);
+    }
+  };
+
+  // Add sample data generator
+  const generateSampleData = () => {
+    const sampleData = [
+      {
+        entityType: 'Account',
+        name: 'My Account',
+        description: 'This is my personal account',
+        address: '0x1234567890abcdef1234567890abcdef12345678',
+      },
+      {
+        entityType: 'WorldID',
+        address: '0x1234567890abcdef1234567890abcdef12345678',
+        timestamp: '1703097600',
+        type: 'human',
+      },
+      {
+        entityType: 'SelfID',
+        address: '0x1234567890abcdef1234567890abcdef12345678',
+        did: 'did:example:self123',
+      },
+      {
+        entityType: 'TokenHolding',
+        address: '0x1234567890abcdef1234567890abcdef12345678',
+        token: 'ETH',
+        amount: '1.5',
+        network: 'ethereum',
+      },
+      {
+        entityType: 'VCProof',
+        proofHash: '0xabcdef1234567890abcdef1234567890abcdef12',
+        issuer: 'did:example:issuer123',
+        type: 'ProofOfResidence',
+      },
+      {
+        entityType: 'TransferEvents',
+        from: '0x1234567890abcdef1234567890abcdef12345678',
+        to: '0xabcdef1234567890abcdef123456890abcdef123',
+        token: 'ETH',
+        amount: '1.5',
+        timestamp: '1703097600',
+      },
+    ];
+    setJsonInput(JSON.stringify(sampleData, null, 2));
   };
 
   const publishToPublicSpace = async (entity: any) => {
@@ -372,23 +583,6 @@ function PrivateSpace({ spaceId }: { spaceId: string }) {
       } catch (error) {
         console.error('Error deleting entity:', error);
       }
-    }
-  };
-
-  const getEntityDisplayName = (entity: any) => {
-    switch (entity.entityType) {
-      case 'WorldID':
-        return entity.address?.slice(0, 8) + '...' || 'WorldID';
-      case 'SelfID':
-        return entity.did?.slice(0, 8) + '...' || 'SelfID';
-      case 'VCProof':
-        return entity.type || 'VCProof';
-      case 'TokenHolding':
-        return `${entity.amount} ${entity.token}` || 'TokenHolding';
-      case 'TransferEvents':
-        return `${entity.amount} ${entity.token}` || 'Transfer';
-      default:
-        return 'Entity';
     }
   };
 
@@ -433,72 +627,199 @@ function PrivateSpace({ spaceId }: { spaceId: string }) {
         {/* Add Entity Modal */}
         {isAddingEntity && (
           <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50">
-            <div className="bg-white/10 backdrop-blur-sm rounded-xl p-8 border border-white/20 max-w-4xl w-full mx-4 max-h-[80vh] overflow-y-auto">
+            <div className="bg-white/10 backdrop-blur-sm rounded-xl p-8 border border-white/20 max-w-7xl w-full mx-4 max-h-[90vh] overflow-y-auto">
               <h2 className="text-2xl font-bold text-white mb-6">Add New Entities</h2>
               <p className="text-gray-400 mb-8">
-                Fill in any combination of entity types below. Only completed forms will create entities.
+                Fill in any combination of entity types below or use the JSON parser to auto-populate forms.
               </p>
 
-              <form onSubmit={handleSubmit}>
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-                  {Object.entries(entityTypes).map(([entityType, config]) => {
-                    const typeKey = entityType as keyof typeof entityData;
-                    return (
-                      <div key={entityType} className="bg-white/5 rounded-lg p-6 border border-white/10">
-                        <div className="flex items-center mb-4">
-                          <div
-                            className={`w-10 h-10 bg-gradient-to-r ${config.color} rounded-lg flex items-center justify-center mr-3`}
-                          >
-                            <span className="text-white text-lg">{config.icon}</span>
-                          </div>
-                          <div>
-                            <h3 className="text-lg font-semibold text-white">{config.title}</h3>
-                            <p className="text-gray-400 text-sm">{config.description}</p>
+              <div className="grid grid-cols-1 xl:grid-cols-3 gap-8">
+                {/* JSON Parser Section */}
+                <div className="xl:col-span-1">
+                  <div className="bg-white/5 rounded-lg p-6 border border-white/10 sticky top-0">
+                    <div className="flex items-center mb-4">
+                      <div className="w-10 h-10 bg-gradient-to-r from-indigo-500 to-purple-500 rounded-lg flex items-center justify-center mr-3">
+                        <span className="text-white text-lg">🔧</span>
+                      </div>
+                      <div>
+                        <h3 className="text-lg font-semibold text-white">JSON Parser</h3>
+                        <p className="text-gray-400 text-sm">Auto-fill forms from JSON data</p>
+                      </div>
+                    </div>
+
+                    <div className="space-y-4">
+                      <div>
+                        <label className="block text-gray-300 text-sm font-semibold mb-2">Paste JSON Data</label>
+                        <textarea
+                          value={jsonInput}
+                          onChange={(e) => {
+                            setJsonInput(e.target.value);
+                            setParseError('');
+                            setParseSuccess('');
+                          }}
+                          className="w-full h-48 px-4 py-3 bg-white/5 border border-white/20 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:border-purple-400 focus:ring-2 focus:ring-purple-400/20 font-mono text-sm resize-none"
+                          placeholder={`[
+  {
+    "entityType": "WorldID",
+    "address": "0x123...",
+    "timestamp": "1703097600",
+    "type": "human"
+  },
+  {
+    "entityType": "TokenHolding",
+    "address": "0x123...",
+    "token": "ETH",
+    "amount": "1.5",
+    "network": "ethereum"
+  }
+]`}
+                        />
+                      </div>
+
+                      {parseError && (
+                        <div className="bg-red-900/30 border border-red-500/50 rounded-lg p-3">
+                          <div className="flex items-center">
+                            <span className="text-red-400 text-lg mr-2">❌</span>
+                            <span className="text-red-300 text-sm">{parseError}</span>
                           </div>
                         </div>
+                      )}
 
-                        {config.fields.map((field) => (
-                          <div key={field.name} className="mb-4">
-                            <label className="block text-gray-300 text-sm font-semibold mb-2">{field.label}</label>
-                            <input
-                              type={field.type}
-                              value={(entityData[typeKey] as any)[field.name] || ''}
-                              onChange={(e) => updateEntityData(typeKey, field.name, e.target.value)}
-                              className="w-full px-4 py-3 bg-white/5 border border-white/20 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:border-purple-400 focus:ring-2 focus:ring-purple-400/20"
-                              placeholder={field.placeholder}
-                            />
+                      {parseSuccess && (
+                        <div className="bg-green-900/30 border border-green-500/50 rounded-lg p-3">
+                          <div className="flex items-center">
+                            <span className="text-green-400 text-lg mr-2">✅</span>
+                            <span className="text-green-300 text-sm">{parseSuccess}</span>
                           </div>
-                        ))}
+                        </div>
+                      )}
+
+                      <div className="space-y-2">
+                        <button
+                          type="button"
+                          onClick={parseJsonData}
+                          disabled={!jsonInput.trim()}
+                          className="w-full px-4 py-3 bg-indigo-600 hover:bg-indigo-700 disabled:bg-gray-600 disabled:cursor-not-allowed text-white rounded-lg font-semibold transition-colors"
+                        >
+                          Parse & Fill Forms
+                        </button>
+                        <button
+                          type="button"
+                          onClick={generateSampleData}
+                          className="w-full px-4 py-2 bg-gray-600 hover:bg-gray-700 text-white rounded-lg text-sm font-semibold transition-colors"
+                        >
+                          Load Sample Data
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setJsonInput('');
+                            setParseError('');
+                            setParseSuccess('');
+                          }}
+                          className="w-full px-4 py-2 bg-gray-700 hover:bg-gray-800 text-white rounded-lg text-sm font-semibold transition-colors"
+                        >
+                          Clear JSON
+                        </button>
                       </div>
-                    );
-                  })}
+
+                      <div className="bg-blue-900/20 border border-blue-500/30 rounded-lg p-3">
+                        <h4 className="text-blue-300 font-semibold text-sm mb-2">💡 Tips:</h4>
+                        <ul className="text-blue-200 text-xs space-y-1">
+                          <li>• Include "entityType" field for direct mapping</li>
+                          <li>• Use arrays for multiple entities</li>
+                          <li>• Field names must match exactly</li>
+                          <li>• Numbers can be strings or numbers</li>
+                        </ul>
+                      </div>
+                    </div>
+                  </div>
                 </div>
 
-                <div className="flex justify-end space-x-4 mt-8">
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setIsAddingEntity(false);
-                      setEntityData({
-                        WorldID: { address: '', timestamp: '', type: '' },
-                        SelfID: { address: '', did: '' },
-                        VCProof: { proofHash: '', issuer: '', type: '' },
-                        TokenHolding: { address: '', token: '', amount: '', network: '' },
-                        TransferEvents: { from: '', to: '', token: '', amount: '', timestamp: '' },
-                      });
-                    }}
-                    className="px-6 py-3 border border-gray-600 text-gray-300 rounded-lg hover:bg-white/5 transition-colors"
-                  >
-                    Cancel
-                  </button>
-                  <button
-                    type="submit"
-                    className="px-6 py-3 bg-purple-600 hover:bg-purple-700 text-white rounded-lg font-semibold transition-colors"
-                  >
-                    Create Entities
-                  </button>
-                </div>
-              </form>
+                {/* Form Section */}
+                <form onSubmit={handleSubmit} className="xl:col-span-2">
+                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                    {Object.entries(entityTypes).map(([entityType, config]) => {
+                      const typeKey = entityType as keyof typeof entityData;
+                      const hasData = config.fields.some(
+                        (field) =>
+                          (entityData[typeKey] as any)[field.name] &&
+                          (entityData[typeKey] as any)[field.name].trim() !== '',
+                      );
+
+                      return (
+                        <div
+                          key={entityType}
+                          className={`bg-white/5 rounded-lg p-6 border transition-all duration-200 ${
+                            hasData ? 'border-green-500/50 bg-green-900/10' : 'border-white/10'
+                          }`}
+                        >
+                          <div className="flex items-center mb-4">
+                            <div
+                              className={`w-10 h-10 bg-gradient-to-r ${config.color} rounded-lg flex items-center justify-center mr-3`}
+                            >
+                              <span className="text-white text-lg">{config.icon}</span>
+                            </div>
+                            <div className="flex-1">
+                              <div className="flex items-center">
+                                <h3 className="text-lg font-semibold text-white">{config.title}</h3>
+                                {hasData && (
+                                  <span className="ml-2 px-2 py-1 bg-green-600 text-white text-xs rounded-full">
+                                    Filled
+                                  </span>
+                                )}
+                              </div>
+                              <p className="text-gray-400 text-sm">{config.description}</p>
+                            </div>
+                          </div>
+
+                          {config.fields.map((field) => (
+                            <div key={field.name} className="mb-4">
+                              <label className="block text-gray-300 text-sm font-semibold mb-2">{field.label}</label>
+                              <input
+                                type={field.type}
+                                value={(entityData[typeKey] as any)[field.name] || ''}
+                                onChange={(e) => updateEntityData(typeKey, field.name, e.target.value)}
+                                className="w-full px-4 py-3 bg-white/5 border border-white/20 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:border-purple-400 focus:ring-2 focus:ring-purple-400/20"
+                                placeholder={field.placeholder}
+                              />
+                            </div>
+                          ))}
+                        </div>
+                      );
+                    })}
+                  </div>
+
+                  <div className="flex justify-end space-x-4 mt-8">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setIsAddingEntity(false);
+                        setEntityData({
+                          Account: { name: '', description: '', address: '' },
+                          WorldID: { address: '', timestamp: '', type: '' },
+                          SelfID: { address: '', did: '' },
+                          VCProof: { proofHash: '', issuer: '', type: '' },
+                          TokenHolding: { address: '', token: '', amount: '', network: '' },
+                          TransferEvents: { from: '', to: '', token: '', amount: '', timestamp: '' },
+                        });
+                        setJsonInput('');
+                        setParseError('');
+                        setParseSuccess('');
+                      }}
+                      className="px-6 py-3 border border-gray-600 text-gray-300 rounded-lg hover:bg-white/5 transition-colors"
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      type="submit"
+                      className="px-6 py-3 bg-purple-600 hover:bg-purple-700 text-white rounded-lg font-semibold transition-colors"
+                    >
+                      Create Entities
+                    </button>
+                  </div>
+                </form>
+              </div>
             </div>
           </div>
         )}
@@ -506,7 +827,27 @@ function PrivateSpace({ spaceId }: { spaceId: string }) {
         {/* Debug Panel */}
         <div className="bg-red-900/20 backdrop-blur-sm rounded-xl p-6 border border-red-500/30 mb-8">
           <h3 className="text-lg font-semibold text-red-400 mb-4">🐛 Debug Panel (for hackathon testing)</h3>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-4">
+
+          <div className="bg-yellow-900/20 border border-yellow-500/30 rounded-lg p-4 mb-4">
+            <h4 className="text-yellow-300 font-semibold text-sm mb-2">🔍 Troubleshooting Private Space Loading</h4>
+            <div className="text-yellow-200 text-xs space-y-1">
+              <p>• Check if Authentication shows all ✅ - if not, wallet connection is needed</p>
+              <p>• Check if Space Status shows Ready: ✅ - if not, space may not exist or be inaccessible</p>
+              <p>• Use browser console to see detailed debug logs</p>
+              <p>• Try the debug buttons below to gather more information</p>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-4">
+            <div className="bg-black/30 rounded-lg p-3">
+              <div className="text-sm text-gray-400">Authentication</div>
+              <div className="text-white font-mono">Auth: {authenticated ? '✅' : '❌'}</div>
+              <div className="text-white font-mono">Identity: {identity ? '✅' : '❌'}</div>
+              <div className="text-white font-mono">
+                Client: {authDebug.loading ? '⏳' : authDebug.smartSessionClient ? '✅' : '❌'}
+              </div>
+              {authDebug.error && <div className="text-red-400 font-mono text-xs mt-1">Error: {authDebug.error}</div>}
+            </div>
             <div className="bg-black/30 rounded-lg p-3">
               <div className="text-sm text-gray-400">Space Status</div>
               <div className="text-white font-mono">Ready: {ready ? '✅' : '❌'}</div>
@@ -514,6 +855,7 @@ function PrivateSpace({ spaceId }: { spaceId: string }) {
             </div>
             <div className="bg-black/30 rounded-lg p-3">
               <div className="text-sm text-gray-400">Entity Counts</div>
+              <div className="text-white font-mono">Account: {accounts?.length || 0}</div>
               <div className="text-white font-mono">WorldID: {worldIDs?.length || 0}</div>
               <div className="text-white font-mono">SelfID: {selfIDs?.length || 0}</div>
               <div className="text-white font-mono">VCProof: {vcProofs?.length || 0}</div>
@@ -529,8 +871,16 @@ function PrivateSpace({ spaceId }: { spaceId: string }) {
             <button
               onClick={() => {
                 console.log('=== MANUAL DEBUG ===');
-                console.log('Current state:', { ready, name, spaceId });
-                console.log('Raw query data:', { worldIDs, selfIDs, vcProofs, tokenHoldings, transferEvents });
+                console.log('Current state:', { ready, name, spaceId, authenticated, identity });
+                console.log('Auth debug:', authDebug);
+                console.log('Raw query data:', {
+                  accounts,
+                  worldIDs,
+                  selfIDs,
+                  vcProofs,
+                  tokenHoldings,
+                  transferEvents,
+                });
                 console.log('All entities:', allEntities);
               }}
               className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm font-semibold transition-colors"
@@ -547,11 +897,23 @@ function PrivateSpace({ spaceId }: { spaceId: string }) {
               onClick={() => {
                 console.log('=== MAPPING DEBUG ===');
                 console.log('Current mapping:', mapping);
-                console.log('Schema entities:', { WorldID, SelfID, VCProof, TokenHolding, TransferEvents });
+                console.log('Schema entities:', { Account, WorldID, SelfID, VCProof, TokenHolding, TransferEvents });
               }}
               className="px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-lg text-sm font-semibold transition-colors"
             >
               Check Mapping
+            </button>
+            <button
+              onClick={() => {
+                console.log('=== SPACE ID DEBUG ===');
+                console.log('Current space ID:', spaceId);
+                console.log('Space ID type:', typeof spaceId);
+                console.log('Space ID length:', spaceId.length);
+                console.log('URL params:', Route.useParams());
+              }}
+              className="px-4 py-2 bg-yellow-600 hover:bg-yellow-700 text-white rounded-lg text-sm font-semibold transition-colors"
+            >
+              Check Space ID
             </button>
           </div>
         </div>
@@ -560,7 +922,30 @@ function PrivateSpace({ spaceId }: { spaceId: string }) {
         <div className="bg-white/5 backdrop-blur-sm rounded-xl p-8 border border-white/10">
           <div className="flex items-center justify-between mb-8">
             <h2 className="text-2xl font-bold text-white">All Entities</h2>
-            <div className="text-gray-400 text-sm">{allEntities.length} entities in this space</div>
+            <div className="flex items-center space-x-4">
+              <div className="text-gray-400 text-sm">{allEntities.length} entities in this space</div>
+
+              {/* Sorting Controls */}
+              <div className="flex items-center space-x-2">
+                <select
+                  value={sortBy}
+                  onChange={(e) => setSortBy(e.target.value as 'name' | 'type' | 'recent')}
+                  className="px-3 py-2 bg-white/10 border border-white/20 rounded-lg text-white text-sm focus:outline-none focus:border-purple-400"
+                >
+                  <option value="name">Sort by Name</option>
+                  <option value="type">Sort by Type</option>
+                  <option value="recent">Sort by Recent</option>
+                </select>
+
+                <button
+                  onClick={() => setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc')}
+                  className="px-3 py-2 bg-white/10 border border-white/20 rounded-lg text-white text-sm hover:bg-white/20 transition-colors flex items-center space-x-1"
+                >
+                  <span>{sortOrder === 'asc' ? '↑' : '↓'}</span>
+                  <span>{sortOrder === 'asc' ? 'Asc' : 'Desc'}</span>
+                </button>
+              </div>
+            </div>
           </div>
 
           {allEntities.length === 0 ? (
@@ -579,7 +964,7 @@ function PrivateSpace({ spaceId }: { spaceId: string }) {
             </div>
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {allEntities.map((entity, index) => {
+              {sortedEntities.map((entity, index) => {
                 const config = entityTypes[entity.entityType as keyof typeof entityTypes];
                 return (
                   <div
@@ -659,38 +1044,6 @@ function PrivateSpace({ spaceId }: { spaceId: string }) {
               })}
             </div>
           )}
-        </div>
-
-        {/* Info Section */}
-        <div className="mt-16 grid grid-cols-1 md:grid-cols-2 gap-8">
-          <div className="bg-white/5 backdrop-blur-sm rounded-xl p-6 border border-purple-500/20">
-            <h3 className="text-xl font-semibold text-white mb-4">🔐 Privacy Features</h3>
-            <ul className="space-y-2 text-gray-300">
-              <li className="flex items-center">
-                <span className="w-2 h-2 bg-green-400 rounded-full mr-3"></span>
-                End-to-end encryption
-              </li>
-              <li className="flex items-center">
-                <span className="w-2 h-2 bg-blue-400 rounded-full mr-3"></span>
-                Private entity management
-              </li>
-              <li className="flex items-center">
-                <span className="w-2 h-2 bg-purple-400 rounded-full mr-3"></span>
-                Selective publishing
-              </li>
-            </ul>
-          </div>
-          <div className="bg-white/5 backdrop-blur-sm rounded-xl p-6 border border-pink-500/20">
-            <h3 className="text-xl font-semibold text-white mb-4">⚡ Entity Types</h3>
-            <div className="space-y-2">
-              {Object.entries(entityTypes).map(([type, config]) => (
-                <div key={type} className="flex items-center text-gray-300">
-                  <span className="text-lg mr-2">{config.icon}</span>
-                  <span>{type}</span>
-                </div>
-              ))}
-            </div>
-          </div>
         </div>
       </div>
     </div>
