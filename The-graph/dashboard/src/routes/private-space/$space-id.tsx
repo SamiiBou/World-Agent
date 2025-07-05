@@ -55,9 +55,7 @@ function PrivateSpace({ spaceId }: { spaceId: string }) {
   useEffect(() => {
     const testAuth = async () => {
       try {
-        console.log('Testing authentication...');
         const client = await getSmartSessionClient();
-        console.log('Smart session client result:', client);
         setAuthDebug({
           smartSessionClient: client ? 'Available' : 'Not available',
           error: null,
@@ -183,26 +181,7 @@ function PrivateSpace({ spaceId }: { spaceId: string }) {
     } catch (error) {
       console.error('Error during refetch:', error);
     }
-
-    console.log('=== REFETCH DEBUG END ===');
   };
-
-  // Debug query states
-  console.log('=== QUERY STATES DEBUG ===');
-  console.log('Private space query states:', {
-    spaceId,
-    ready,
-    name,
-    authenticated,
-    identity,
-    accounts: { count: accounts?.length || 0, data: accounts },
-    worldIDs: { count: worldIDs?.length || 0, data: worldIDs },
-    selfIDs: { count: selfIDs?.length || 0, data: selfIDs },
-    vcProofs: { count: vcProofs?.length || 0, data: vcProofs },
-    tokenHoldings: { count: tokenHoldings?.length || 0, data: tokenHoldings },
-    transferEvents: { count: transferEvents?.length || 0, data: transferEvents },
-    allEntities: { count: allEntities.length, data: allEntities },
-  });
 
   // Entity type configurations
   const entityTypes = {
@@ -824,9 +803,9 @@ function PrivateSpace({ spaceId }: { spaceId: string }) {
           </div>
         )}
 
-        {/* Debug Panel */}
+        {/* Stats Station */}
         <div className="bg-red-900/20 backdrop-blur-sm rounded-xl p-6 border border-red-500/30 mb-8">
-          <h3 className="text-lg font-semibold text-red-400 mb-4">🐛 Debug Panel (for hackathon testing)</h3>
+          <h3 className="text-lg font-semibold text-red-400 mb-4"> Stats Station (for hackathon testing/demo only)</h3>
 
           <div className="bg-yellow-900/20 border border-yellow-500/30 rounded-lg p-4 mb-4">
             <h4 className="text-yellow-300 font-semibold text-sm mb-2">🔍 Troubleshooting Private Space Loading</h4>

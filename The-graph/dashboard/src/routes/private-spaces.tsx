@@ -1,4 +1,4 @@
-import { useSpaces, useHypergraphAuth, useHypergraphApp } from '@graphprotocol/hypergraph-react';
+import { useSpaces } from '@graphprotocol/hypergraph-react';
 import { createFileRoute, Link } from '@tanstack/react-router';
 import { useState } from 'react';
 
@@ -10,10 +10,6 @@ function PrivateSpaces() {
   const spacesQuery = useSpaces({ mode: 'private' });
   const { data: privateSpaces, isPending: privateSpacesPending } = spacesQuery;
   const error = 'error' in spacesQuery ? spacesQuery.error : null;
-
-  // Add authentication debugging
-  const { authenticated, identity } = useHypergraphAuth();
-  const { getSmartSessionClient } = useHypergraphApp();
 
   // Add sorting state for spaces
   const [sortBy, setSortBy] = useState<'name' | 'recent'>('name');
@@ -40,52 +36,78 @@ function PrivateSpaces() {
       })
     : [];
 
-  // Comprehensive debug logging
-  console.log('=== PRIVATE SPACES COMPREHENSIVE DEBUG ===');
-  console.log('Authentication state:', {
-    authenticated,
-    identity,
-    hasIdentity: !!identity,
-  });
-  console.log('Private spaces query:', {
-    privateSpaces,
-    privateSpacesPending,
-    error,
-    length: privateSpaces?.length,
-    queryState: spacesQuery,
-  });
-  console.log('Full spaces query object:', spacesQuery);
-
-  // Test smart session client
-  console.log('Testing smart session client...');
-  getSmartSessionClient()
-    .then((client) => {
-      console.log('Smart session client result:', {
-        hasClient: !!client,
-        client: client ? 'Available' : 'Not available',
-      });
-    })
-    .catch((err) => {
-      console.error('Smart session client error:', err);
-    });
-
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-900 via-purple-900 to-indigo-900">
       <div className="container mx-auto px-6 py-16">
         {/* Hero Section */}
-        <div className="text-center mb-16">
-          <div className="flex justify-center mb-6">
-            <div className="w-16 h-16 bg-gradient-to-r from-purple-400 to-pink-400 rounded-full flex items-center justify-center">
-              <span className="text-white text-2xl">🔒</span>
+        <div className="text-center mb-20">
+          {/* Main Title */}
+          <div className="mb-12">
+            <div className="inline-flex items-center justify-center p-2 bg-white/10 rounded-full mb-6 backdrop-blur-sm border border-white/20">
+              <div className="flex items-center space-x-2 px-4 py-2">
+                <div className="w-2 h-2 bg-purple-400 rounded-full animate-pulse"></div>
+                <span className="text-sm font-medium text-white">Secure & Private</span>
+              </div>
+            </div>
+
+            <h1 className="text-7xl md:text-8xl font-bold text-white mb-6 leading-tight">
+              <span className="bg-gradient-to-r from-purple-400 via-pink-400 to-indigo-400 bg-clip-text text-transparent">
+                Private
+              </span>
+              <br />
+              <span className="text-white">Agent Spaces</span>
+            </h1>
+
+            <div className="max-w-2xl mx-auto">
+              <p className="text-xl text-gray-300 leading-relaxed">
+                Create, manage, and control your{' '}
+                <span className="text-purple-400 font-semibold">personal AI agents</span> in completely private spaces.
+                Choose when to share them with the world.
+              </p>
             </div>
           </div>
-          <h1 className="text-6xl font-bold text-white mb-6 bg-gradient-to-r from-purple-400 to-pink-400 bg-clip-text text-transparent">
-            Private Spaces
-          </h1>
-          <p className="text-xl text-gray-300 mb-8 max-w-3xl mx-auto">
-            Your personal AI agent spaces with enhanced privacy and control. Create, manage, and interact with your
-            exclusive AI companions.
-          </p>
+
+          {/* Feature Cards */}
+          <div className="grid md:grid-cols-3 gap-8 max-w-6xl mx-auto mb-12">
+            <div className="bg-white/5 backdrop-blur-sm rounded-2xl p-8 border border-white/10 hover:bg-white/10 transition-all duration-300 group">
+              <div className="text-4xl mb-4 group-hover:scale-110 transition-transform duration-300">🔒</div>
+              <h3 className="text-xl font-semibold text-white mb-3">Complete Privacy</h3>
+              <p className="text-gray-400 leading-relaxed">
+                Your agents remain completely private until you decide to share them publicly.
+              </p>
+            </div>
+
+            <div className="bg-white/5 backdrop-blur-sm rounded-2xl p-8 border border-white/10 hover:bg-white/10 transition-all duration-300 group">
+              <div className="text-4xl mb-4 group-hover:scale-110 transition-transform duration-300">🎛️</div>
+              <h3 className="text-xl font-semibold text-white mb-3">Full Control</h3>
+              <p className="text-gray-400 leading-relaxed">
+                Upload, configure, and manage your agent data with complete control over access and permissions.
+              </p>
+            </div>
+
+            <div className="bg-white/5 backdrop-blur-sm rounded-2xl p-8 border border-white/10 hover:bg-white/10 transition-all duration-300 group">
+              <div className="text-4xl mb-4 group-hover:scale-110 transition-transform duration-300">🚀</div>
+              <h3 className="text-xl font-semibold text-white mb-3">Easy Publishing</h3>
+              <p className="text-gray-400 leading-relaxed">
+                When ready, seamlessly publish your private agents to public spaces with one click.
+              </p>
+            </div>
+          </div>
+
+          {/* Call to Action */}
+          <div className="flex flex-col sm:flex-row items-center justify-center space-y-4 sm:space-y-0 sm:space-x-6">
+            <button className="bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white px-8 py-4 rounded-xl font-semibold text-lg transition-all duration-300 transform hover:scale-105 shadow-lg hover:shadow-xl">
+              Create Private Space
+            </button>
+            <a
+              href="https://github.com/SamiiBou/World-Agent"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="bg-white/10 backdrop-blur-sm border border-white/20 hover:bg-white/20 text-white px-8 py-4 rounded-xl font-semibold text-lg transition-all duration-300"
+            >
+              Learn More
+            </a>
+          </div>
         </div>
 
         {/* Main Content */}

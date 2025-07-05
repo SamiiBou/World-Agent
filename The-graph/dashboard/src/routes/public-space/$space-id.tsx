@@ -261,9 +261,12 @@ function PublicSpace({ spaceId }: { spaceId: string }) {
           </nav>
         </div>
 
-        {/* Debug Panel for Publishing Issues */}
+        {/* Stats Station */}
         <div className="bg-yellow-900/20 backdrop-blur-sm rounded-xl p-6 border border-yellow-500/30 mb-8">
-          <h3 className="text-lg font-semibold text-yellow-400 mb-4">🔍 Enhanced Debug Panel - Schema & Data Issues</h3>
+          <h3 className="text-lg font-semibold text-yellow-400 mb-4">
+            {' '}
+            Stats Station (for hackathon testing/demo only)
+          </h3>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
             <div className="bg-blue-900/20 border border-blue-500/30 rounded-lg p-4">
@@ -530,23 +533,6 @@ function PublicSpace({ spaceId }: { spaceId: string }) {
                     <div className="flex justify-between items-center pt-4 border-t border-white/10">
                       <div className="text-gray-500 text-sm">Entity #{index + 1}</div>
                       <div className="flex space-x-2">
-                        <button
-                          onClick={() => {
-                            console.log('=== ENTITY DEBUG ===');
-                            console.log('Entity:', entity);
-                            console.log('Entity Type:', entity.entityType);
-                            console.log('Entity Mapping:', entityMapping);
-                            console.log('Schema Issues:', hasSchemaIssues);
-                            console.log('Expected Properties:', Object.keys(entityMapping?.properties || {}));
-                            console.log(
-                              'Actual Properties:',
-                              Object.keys(entity as any).filter((k) => k !== 'entityType'),
-                            );
-                          }}
-                          className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm font-semibold transition-colors"
-                        >
-                          Debug Entity
-                        </button>
                         <button
                           onClick={() => handleUnsetEntity(entity)}
                           className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg text-sm font-semibold transition-colors flex items-center space-x-1"
