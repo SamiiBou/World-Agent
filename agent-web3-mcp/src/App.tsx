@@ -2,6 +2,7 @@ import React from 'react';
 import { BrowserRouter as Router, Routes, Route, Link } from 'react-router-dom';
 import { ChatInterface } from './components/ChatInterface';
 import IdentityLinking from './components/IdentityLinking';
+import ImportAgent from './components/ImportAgent';
 import AgentLinking from './components/AgentLinking';
 import MiniKitStatus from './components/MiniKitStatus';
 import AuthGuard from './components/AuthGuard';
