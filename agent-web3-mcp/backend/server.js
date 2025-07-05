@@ -362,6 +362,10 @@ app.put('/api/agents/:id', async (req, res) => {
   }
 });
 
+// Self verification routes
+const selfVerifyRouter = require('./routes/selfVerify');
+app.use('/api', selfVerifyRouter);
+
 // Middleware de gestion d'erreur
 app.use((err, req, res, next) => {
   console.error('Server error:', err);

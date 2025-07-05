@@ -1,40 +1,23 @@
 import React, { useState, useEffect } from 'react';
 import { SelfQRcodeWrapper, SelfAppBuilder } from '@selfxyz/qrcode';
 import { v4 as uuidv4 } from 'uuid';
-import { generateUserContextData } from '../utils/generateUserContextData';
 
 export default function SelfVerificationQR() {
   const [userId, setUserId] = useState<string | null>(null);
-  const [userContextData, setUserContextData] = useState<string | null>(null);
 
   useEffect(() => {
     // Generate a user ID when the component mounts
     const newUserId = uuidv4();
     setUserId(newUserId);
-
-    // Generate consistent userContextData using the utility function
-    const contextData = generateUserContextData({
-      userId: newUserId,
-      scope: "my-application-scope",
-      endpoint: "https://9b05-217-112-231-162.ngrok-free.app/api/verify",
-      customData: {
-        action: 'verification',
-        userDefinedData: 'test'
-      }
-    });
-    setUserContextData(contextData);
-    
-    console.log('Generated userContextData in frontend:', contextData.substring(0, 64) + '...');
   }, []);
 
-  if (!userId || !userContextData) return <div>Loading Self ID...</div>;
+  if (!userId) return <div>Loading Self ID...</div>;
 
   // Create the SelfApp configuration according to documentation
-  console.log('userContextData:', userContextData);
   const selfApp = new SelfAppBuilder({
     appName: "Human-Verified Agent System",
     scope: "my-application-scope",         // Must match backend scope exactly
-    endpoint: "https://9b05-217-112-231-162.ngrok-free.app/api/verify", // Updated ngrok URL
+    endpoint: 'https://5c65-83-144-23-154.ngrok-free.app/api/verify', // Updated ngrok URL
     userId,
     version: 2,
     userDefinedData: "test",

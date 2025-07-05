@@ -30,7 +30,7 @@ allowedIds.set(2, true); // EU ID cards
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 const verifier = new SelfBackendVerifier(
   'my-application-scope',
-  'https://9b05-217-112-231-162.ngrok-free.app/api/verify',
+  'https://5c65-83-144-23-154.ngrok-free.app/api/verify',
   false,  // Production mode
   allowedIds,
   configStorage,
@@ -97,7 +97,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       userContextData = generateUserContextData({
         userId: userId || 'default-user',
         scope: 'my-application-scope',
-        endpoint: 'https://9b05-217-112-231-162.ngrok-free.app/api/verify',
+        endpoint: 'https://5c65-83-144-23-154.ngrok-free.app/api/verify',
         customData: {
           action: 'verification',
           userDefinedData: userDefinedData || 'test'
@@ -112,7 +112,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       userContextData = generateUserContextData({
         userId: userId || 'default-user',
         scope: 'my-application-scope',
-        endpoint: 'https://9b05-217-112-231-162.ngrok-free.app/api/verify',
+        endpoint: 'https://5c65-83-144-23-154.ngrok-free.app/api/verify',
         customData: {
           action: 'verification',
           userDefinedData: userDefinedData || 'test'
