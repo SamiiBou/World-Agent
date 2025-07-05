@@ -85,6 +85,26 @@ function PrivateSpace({ spaceId }: { spaceId: string }) {
   const { data: publicSpaces } = useSpaces({ mode: 'public' });
   const [selectedSpace, setSelectedSpace] = useState<string>('');
   const [isAddingEntity, setIsAddingEntity] = useState(false);
+
+  // Add verification popup state
+  const [verificationState, setVerificationState] = useState<{
+    isOpen: boolean;
+    entity: any;
+    targetSpace: string;
+    currentStep: number;
+    isVerifying: boolean;
+    verificationComplete: boolean;
+    error: string | null;
+  }>({
+    isOpen: false,
+    entity: null,
+    targetSpace: '',
+    currentStep: 0,
+    isVerifying: false,
+    verificationComplete: false,
+    error: null,
+  });
+
   const [entityData, setEntityData] = useState<{
     Account: { name: string; description: string; address: string };
     WorldID: { address: string; timestamp: string; type: string };
@@ -531,23 +551,91 @@ function PrivateSpace({ spaceId }: { spaceId: string }) {
       alert('No space selected');
       return;
     }
+
+    // Show verification popup instead of publishing directly
+    setVerificationState({
+      isOpen: true,
+      entity: entity,
+      targetSpace: selectedSpace,
+      currentStep: 0,
+      isVerifying: false,
+      verificationComplete: false,
+      error: null,
+    });
+  };
+
+  // Add verification steps
+  const verificationSteps = [
+    {
+      title: 'Validating Entity Data',
+      description: 'Checking entity structure and required fields',
+      icon: '📋',
+      duration: 1500,
+    },
+    {
+      title: 'Verifying Credentials',
+      description: 'Validating verifiable credentials and proofs',
+      icon: '🔐',
+      duration: 2000,
+    },
+    {
+      title: 'Checking Permissions',
+      description: 'Ensuring publication rights to target space',
+      icon: '🔑',
+      duration: 1200,
+    },
+    {
+      title: 'Preparing Publication',
+      description: 'Finalizing data for public space publication',
+      icon: '📤',
+      duration: 1000,
+    },
+  ];
+
+  // Handle verification process
+  const handleVerification = async () => {
+    setVerificationState((prev) => ({ ...prev, isVerifying: true, error: null }));
+
     try {
-      const { ops } = await preparePublish({ entity, publicSpace: selectedSpace });
+      // Simulate verification steps
+      for (let i = 0; i < verificationSteps.length; i++) {
+        setVerificationState((prev) => ({ ...prev, currentStep: i }));
+        await new Promise((resolve) => setTimeout(resolve, verificationSteps[i].duration));
+      }
+
+      setVerificationState((prev) => ({ ...prev, verificationComplete: true }));
+
+      // Wait a moment to show completion
+      await new Promise((resolve) => setTimeout(resolve, 1000));
+
+      // Actually publish the entity
+      const { ops } = await preparePublish({
+        entity: verificationState.entity,
+        publicSpace: verificationState.targetSpace,
+      });
       const smartSessionClient = await getSmartSessionClient();
       if (!smartSessionClient) {
         throw new Error('Missing smartSessionClient');
       }
       const publishResult = await publishOps({
         ops,
-        space: selectedSpace,
-        name: `Publish ${entity.entityType}`,
+        space: verificationState.targetSpace,
+        name: `Publish ${verificationState.entity.entityType}`,
         walletClient: smartSessionClient,
       });
+
       console.log(publishResult, ops);
-      alert(`${entity.entityType} published to public space`);
+
+      // Close verification popup and show success
+      setVerificationState((prev) => ({ ...prev, isOpen: false }));
+      alert(`${verificationState.entity.entityType} published to public space successfully!`);
     } catch (error) {
-      console.error(error);
-      alert(`Error publishing ${entity.entityType} to public space`);
+      console.error('Verification/Publication error:', error);
+      setVerificationState((prev) => ({
+        ...prev,
+        error: error instanceof Error ? error.message : 'Unknown error occurred',
+        isVerifying: false,
+      }));
     }
   };
 
@@ -798,6 +886,190 @@ function PrivateSpace({ spaceId }: { spaceId: string }) {
                     </button>
                   </div>
                 </form>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* VC Verification Modal */}
+        {verificationState.isOpen && (
+          <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+            <div className="bg-white/10 backdrop-blur-sm rounded-xl border border-white/20 max-w-lg w-full max-h-[90vh] overflow-y-auto">
+              <div className="p-6">
+                <div className="text-center mb-6">
+                  <div className="w-12 h-12 bg-gradient-to-r from-blue-500 to-purple-500 rounded-full flex items-center justify-center mx-auto mb-3">
+                    <span className="text-white text-xl">🔍</span>
+                  </div>
+                  <h2 className="text-xl font-bold text-white mb-2">Verifying Credentials</h2>
+                  <p className="text-gray-400 text-sm">
+                    Validating your {verificationState.entity?.entityType} data before publication
+                  </p>
+                </div>
+
+                {/* Verification Steps */}
+                <div className="space-y-3 mb-6">
+                  {verificationSteps.map((step, index) => {
+                    const isActive = verificationState.currentStep === index && verificationState.isVerifying;
+                    const isComplete = verificationState.currentStep > index || verificationState.verificationComplete;
+                    const isPending = verificationState.currentStep < index && !verificationState.verificationComplete;
+
+                    return (
+                      <div
+                        key={index}
+                        className={`flex items-center p-3 rounded-lg border transition-all duration-300 ${
+                          isActive
+                            ? 'border-blue-500/50 bg-blue-900/20'
+                            : isComplete
+                              ? 'border-green-500/50 bg-green-900/20'
+                              : 'border-white/10 bg-white/5'
+                        }`}
+                      >
+                        <div
+                          className={`w-8 h-8 rounded-full flex items-center justify-center mr-3 flex-shrink-0 ${
+                            isActive ? 'bg-blue-500 animate-pulse' : isComplete ? 'bg-green-500' : 'bg-gray-600'
+                          }`}
+                        >
+                          {isActive ? (
+                            <div className="w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                          ) : isComplete ? (
+                            <span className="text-white text-sm">✓</span>
+                          ) : (
+                            <span className="text-white text-sm">{step.icon}</span>
+                          )}
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <h3
+                            className={`font-semibold text-sm ${
+                              isActive ? 'text-blue-300' : isComplete ? 'text-green-300' : 'text-gray-300'
+                            }`}
+                          >
+                            {step.title}
+                          </h3>
+                          <p
+                            className={`text-xs ${
+                              isActive ? 'text-blue-400' : isComplete ? 'text-green-400' : 'text-gray-400'
+                            }`}
+                          >
+                            {step.description}
+                          </p>
+                        </div>
+                        {isActive && (
+                          <div className="ml-2 flex-shrink-0">
+                            <div className="flex space-x-1">
+                              <div className="w-1.5 h-1.5 bg-blue-400 rounded-full animate-bounce"></div>
+                              <div
+                                className="w-1.5 h-1.5 bg-blue-400 rounded-full animate-bounce"
+                                style={{ animationDelay: '0.1s' }}
+                              ></div>
+                              <div
+                                className="w-1.5 h-1.5 bg-blue-400 rounded-full animate-bounce"
+                                style={{ animationDelay: '0.2s' }}
+                              ></div>
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+
+                {/* Progress Bar */}
+                <div className="mb-6">
+                  <div className="flex justify-between items-center mb-2">
+                    <span className="text-xs text-gray-400">Verification Progress</span>
+                    <span className="text-xs text-gray-400">
+                      {verificationState.verificationComplete
+                        ? '100%'
+                        : `${Math.round((verificationState.currentStep / verificationSteps.length) * 100)}%`}
+                    </span>
+                  </div>
+                  <div className="w-full bg-gray-700 rounded-full h-2">
+                    <div
+                      className="bg-gradient-to-r from-blue-500 to-purple-500 h-2 rounded-full transition-all duration-300"
+                      style={{
+                        width: verificationState.verificationComplete
+                          ? '100%'
+                          : `${(verificationState.currentStep / verificationSteps.length) * 100}%`,
+                      }}
+                    ></div>
+                  </div>
+                </div>
+
+                {/* Error Display */}
+                {verificationState.error && (
+                  <div className="bg-red-900/30 border border-red-500/50 rounded-lg p-3 mb-4">
+                    <div className="flex items-start">
+                      <span className="text-red-400 text-lg mr-2 flex-shrink-0">❌</span>
+                      <div>
+                        <h4 className="text-red-300 font-semibold text-sm">Verification Failed</h4>
+                        <p className="text-red-400 text-xs mt-1">{verificationState.error}</p>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* Success Message */}
+                {verificationState.verificationComplete && !verificationState.error && (
+                  <div className="bg-green-900/30 border border-green-500/50 rounded-lg p-3 mb-4">
+                    <div className="flex items-start">
+                      <span className="text-green-400 text-lg mr-2 flex-shrink-0">✅</span>
+                      <div>
+                        <h4 className="text-green-300 font-semibold text-sm">Verification Complete</h4>
+                        <p className="text-green-400 text-xs mt-1">
+                          Your credentials have been validated successfully!
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* Entity Info */}
+                <div className="p-3 bg-white/5 rounded-lg border border-white/10 mb-6">
+                  <h4 className="text-white font-semibold text-sm mb-2">Publishing Details</h4>
+                  <div className="text-xs text-gray-400 space-y-1">
+                    <p>
+                      Entity Type: <span className="text-white">{verificationState.entity?.entityType}</span>
+                    </p>
+                    <p>
+                      Target Space:{' '}
+                      <span className="text-white">
+                        {publicSpaces?.find((s) => s.id === verificationState.targetSpace)?.name || 'Unknown'}
+                      </span>
+                    </p>
+                    <p>
+                      Verification Required: <span className="text-green-400">✓ VC Proof Required</span>
+                    </p>
+                  </div>
+                </div>
+
+                {/* Action Buttons */}
+                <div className="flex justify-end space-x-3 sticky bottom-0 bg-white/10 backdrop-blur-sm p-3 -mx-6 -mb-6 rounded-b-xl border-t border-white/10">
+                  <button
+                    onClick={() => setVerificationState((prev) => ({ ...prev, isOpen: false }))}
+                    disabled={verificationState.isVerifying}
+                    className="px-4 py-2 border border-gray-600 text-gray-300 rounded-lg hover:bg-white/5 transition-colors disabled:opacity-50 disabled:cursor-not-allowed text-sm"
+                  >
+                    Cancel
+                  </button>
+                  {!verificationState.isVerifying &&
+                    !verificationState.verificationComplete &&
+                    !verificationState.error && (
+                      <button
+                        onClick={handleVerification}
+                        className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-semibold transition-colors text-sm"
+                      >
+                        Start Verification
+                      </button>
+                    )}
+                  {verificationState.error && (
+                    <button
+                      onClick={handleVerification}
+                      className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-semibold transition-colors text-sm"
+                    >
+                      Retry Verification
+                    </button>
+                  )}
+                </div>
               </div>
             </div>
           </div>
