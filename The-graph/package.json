@@ -1,0 +1,19 @@
+{
+  "name": "the-graph",
+  "version": "1.0.0",
+  "description": "Graph Protocol integration for indexing and querying blockchain data in the World-Agent ecosystem.",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "@graphprotocol/hypergraph-react": "^0.0.12",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
+    "typescript": "^5.8.3",
+    "vite": "^7.0.2"
+  }
+}
