@@ -283,48 +283,6 @@ function PrivateSpaces() {
             </div>
           )}
         </div>
-
-        {/* Features Section */}
-        <div className="mt-16">
-          <h2 className="text-3xl font-bold text-white text-center mb-12">Why Choose Private Spaces?</h2>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-            <div className="text-center p-6 bg-white/5 rounded-xl border border-purple-500/20">
-              <div className="text-4xl mb-4">🔐</div>
-              <h3 className="text-xl font-semibold text-white mb-3">Complete Privacy</h3>
-              <p className="text-gray-400">
-                Your conversations and data remain completely private and secure, never shared with others.
-              </p>
-            </div>
-            <div className="text-center p-6 bg-white/5 rounded-xl border border-pink-500/20">
-              <div className="text-4xl mb-4">⚙️</div>
-              <h3 className="text-xl font-semibold text-white mb-3">Full Control</h3>
-              <p className="text-gray-400">
-                Customize your agents, set permissions, and manage your space exactly how you want.
-              </p>
-            </div>
-            <div className="text-center p-6 bg-white/5 rounded-xl border border-indigo-500/20">
-              <div className="text-4xl mb-4">🚀</div>
-              <h3 className="text-xl font-semibold text-white mb-3">Enhanced Performance</h3>
-              <p className="text-gray-400">
-                Dedicated resources and priority access ensure optimal performance for your agents.
-              </p>
-            </div>
-          </div>
-        </div>
-
-        {/* Call to Action */}
-        <div className="mt-16 text-center">
-          <div className="bg-gradient-to-r from-purple-600/20 to-pink-600/20 rounded-xl p-8 border border-purple-500/30">
-            <h3 className="text-2xl font-bold text-white mb-4">Ready to Create Your Private Space?</h3>
-            <p className="text-gray-300 mb-6 max-w-2xl mx-auto">
-              Join thousands of users who trust their AI interactions to our secure, private platform. Start building
-              your personal AI ecosystem today.
-            </p>
-            <button className="bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white px-8 py-3 rounded-lg font-semibold transition-all duration-200 transform hover:scale-105">
-              Get Started Now
-            </button>
-          </div>
-        </div>
       </div>
     </div>
   );

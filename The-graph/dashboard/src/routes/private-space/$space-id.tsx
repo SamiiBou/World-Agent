@@ -505,7 +505,7 @@ function PrivateSpace({ spaceId }: { spaceId: string }) {
 
         {/* Debug Panel */}
         <div className="bg-red-900/20 backdrop-blur-sm rounded-xl p-6 border border-red-500/30 mb-8">
-          <h3 className="text-lg font-semibold text-red-400 mb-4">🐛 Debug Panel</h3>
+          <h3 className="text-lg font-semibold text-red-400 mb-4">🐛 Debug Panel (for hackathon testing)</h3>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-4">
             <div className="bg-black/30 rounded-lg p-3">
               <div className="text-sm text-gray-400">Space Status</div>

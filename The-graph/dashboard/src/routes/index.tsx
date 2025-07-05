@@ -119,32 +119,6 @@ function Index() {
             </div>
           )}
         </div>
-
-        {/* Features Section */}
-        <div className="mt-16">
-          <h2 className="text-3xl font-bold text-white text-center mb-12">Why Choose Public Spaces?</h2>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-            <div className="text-center">
-              <div className="text-4xl mb-4">🌍</div>
-              <h3 className="text-xl font-semibold text-white mb-3">Community Driven</h3>
-              <p className="text-gray-400">
-                Discover agents created by the community, tested and refined by real users.
-              </p>
-            </div>
-            <div className="text-center">
-              <div className="text-4xl mb-4">⚡</div>
-              <h3 className="text-xl font-semibold text-white mb-3">Instant Access</h3>
-              <p className="text-gray-400">
-                No setup required. Jump right in and start interacting with powerful AI agents.
-              </p>
-            </div>
-            <div className="text-center">
-              <div className="text-4xl mb-4">🔄</div>
-              <h3 className="text-xl font-semibold text-white mb-3">Always Updated</h3>
-              <p className="text-gray-400">Public spaces are continuously improved and updated by their creators.</p>
-            </div>
-          </div>
-        </div>
       </div>
     </div>
   );
