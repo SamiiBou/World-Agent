@@ -5,6 +5,9 @@ import { AgentManager } from './AgentManager';
 import { Agent } from '../services/backendService';
 import { backendService } from '../services/backendService';
 import './ChatInterface.css';
+import { useNavigate } from 'react-router-dom';
+import { ethers } from 'ethers';
+import ENSService from '../services/ensService';
 
 interface ChatInterfaceProps {
   className?: string;
@@ -32,6 +35,9 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({ className }) => {
   const [identityStatus, setIdentityStatus] = useState<{self: boolean; world: boolean; hasVC: boolean}>({self:false, world:false, hasVC:false});
   const [vcObject, setVcObject] = useState<any | null>(null);
   const [vcModalOpen, setVcModalOpen] = useState(false);
+  const [ensName, setEnsName] = useState<string | null>(null);
+  const [ensRecords, setEnsRecords] = useState<{ world_username?: string; self_nullifier?: string }>({});
+  const navigate = useNavigate();
 
   useEffect(() => {
     // Load available tools and servers
@@ -74,9 +80,31 @@ How can I help you today?`,
     if (selectedAgent) {
       // fetch VC info
       fetchVCInfo(selectedAgent.address);
+      // fetch ENS info
+      (async () => {
+        try {
+          const provider = new ethers.BrowserProvider((window as any).ethereum);
+          const name = await ENSService.getEnsName(selectedAgent.address, provider);
+          if (name) {
+            setEnsName(name);
+            const worldUsername = await ENSService.getText(name, 'world_username', provider);
+            const selfNullifier = await ENSService.getText(name, 'self_nullifier', provider);
+            setEnsRecords({ world_username: worldUsername || '', self_nullifier: selfNullifier || '' });
+          } else {
+            setEnsName(null);
+            setEnsRecords({});
+          }
+        } catch (err) {
+          console.error('ENS lookup failed', err);
+          setEnsName(null);
+          setEnsRecords({});
+        }
+      })();
     } else {
       setIdentityStatus({self:false, world:false, hasVC:false});
       setVcObject(null);
+      setEnsName(null);
+      setEnsRecords({});
     }
   }, [selectedAgent]);
 
@@ -331,6 +359,36 @@ How can I help you today?`,
                 <div className={identityStatus.hasVC ? 'linked' : 'unlinked'}>📜 VC {identityStatus.hasVC ? '✅' : '❌'}</div>
               </div>
             </div>
+          </div>
+
+          {/* ENS Section */}
+          <div className="ens-section">
+            <h4>👛 ENS</h4>
+            {ensName ? (
+              <table className="ens-table">
+                <tbody>
+                  <tr>
+                    <td>Name</td>
+                    <td>{ensName}</td>
+                  </tr>
+                  <tr>
+                    <td>world_username</td>
+                    <td>{ensRecords.world_username || '-'}</td>
+                  </tr>
+                  <tr>
+                    <td>self_nullifier</td>
+                    <td>{ensRecords.self_nullifier || '-'}</td>
+                  </tr>
+                </tbody>
+              </table>
+            ) : (
+              <button
+                className="add-ens-btn"
+                onClick={() => navigate('/add-ens', { state: { agentId: selectedAgent.address } })}
+              >
+                ➕ Add ENS
+              </button>
+            )}
           </div>
 
           <div className="messages-container">

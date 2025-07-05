@@ -8,6 +8,7 @@ import MiniKitStatus from './components/MiniKitStatus';
 import AuthGuard from './components/AuthGuard';
 import WalletAuth from './components/WalletAuth';
 import MiniKitService from './services/miniKitService';
+import AddENS from './components/AddENS';
 import './App.css';
 
 function App() {
@@ -103,6 +104,7 @@ function App() {
               <Route path="/identity-link" element={<IdentityLinking />} />
               <Route path="/agent-link" element={<AgentLinking />} />
               <Route path="/wallet-auth" element={<WalletAuth />} />
+              <Route path="/add-ens" element={<AddENS />} />
             </Routes>
           </div>
         </AuthGuard>

@@ -3,6 +3,7 @@ import { ethers } from 'ethers';
 import { vcService, VCSummary } from '../services/vcService';
 import MiniKitService from '../services/miniKitService';
 import ENSService from '../services/ensService';
+import { useLocation } from 'react-router-dom';
 
 interface AgentLinkingProps {
   agentId?: string;
@@ -10,6 +11,7 @@ interface AgentLinkingProps {
 }
 
 const AgentLinking: React.FC<AgentLinkingProps> = ({ agentId, walletAddress }) => {
+  const location = useLocation() as any;
   const [currentAgentId, setCurrentAgentId] = useState(agentId || '');
   const [currentWalletAddress, setCurrentWalletAddress] = useState(walletAddress || '');
   const [declaration, setDeclaration] = useState('');
@@ -22,6 +24,13 @@ const AgentLinking: React.FC<AgentLinkingProps> = ({ agentId, walletAddress }) =
   const [linkReason, setLinkReason] = useState<string | null>(null);
   const [verifications, setVerifications] = useState({ selfId: false, worldId: false });
   const [ensName, setEnsName] = useState<string>(() => localStorage.getItem('ensName') || '');
+
+  // Auto-detect agentId from navigation state if not provided
+  useEffect(() => {
+    if (!currentAgentId && location?.state?.agentId) {
+      setCurrentAgentId(location.state.agentId);
+    }
+  }, [location, currentAgentId]);
 
   // Initialize with MiniKit wallet if available
   useEffect(() => {
